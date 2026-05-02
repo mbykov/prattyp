@@ -1,0 +1,18 @@
+{"input": "дробь икс на два", "expected": "frac(x, 2)"}
+{"input": "разделить икс на два", "expected": "x / 2"}
+{"input": "дробь пи на шесть", "expected": "frac(pi, 6)"}
+{"input": "разделить пи на шесть", "expected": "pi / 6"}
+{"input": "дробь один на два", "expected": "frac(1, 2)"}
+{"input": "разделить один на два", "expected": "1 / 2"}
+{"input": "один плюс дробь один на два", "expected": "1 + frac(1, 2)"}
+{"input": "один плюс один разделить на два", "expected": "1 + 1 / 2"}
+{"input": "дробь один на u", "expected": "frac(1, u)"}
+{"input": "разделить один на u", "expected": "1 / u"}
+{"input": "дробь икс на четыре", "expected": "frac(x, 4)"}
+{"input": "разделить икс на четыре", "expected": "x / 4"}
+{"input": "дробь один на косинус икс", "expected": "frac(1, cos(x))"}
+{"input": "разделить один на косинус икс", "expected": "1 / cos(x)"}
+{"input": "дробь один на один минус p", "expected": "frac(1, 1 - p)"}
+{"input": "разделить один на один минус p", "expected": "1 / (1 - p)"}
+{"input": "дробь икс плюс игрек на два", "expected": "frac(x + y, 2)"}
+{"input": "разделить икс плюс игрек на два", "expected": "(x + y) / 2"}
