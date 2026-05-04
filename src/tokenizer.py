@@ -1,5 +1,5 @@
 """
-Prattyp Tokenizer v5
+Prattyp Tokenizer v8
 Не содержит кириллицы — все слова приходят из LangRegistry.
 """
 
@@ -10,8 +10,8 @@ from .registry import LangRegistry
 
 @dataclass(frozen=True)
 class Token:
-    type: str      # NUM, VAR, FUNC, OP, ALL, KEYWORD, SEP, END
-    value: str     # нормализованное: "123", "x", "sin", "+", "all", "frac", "на"
+    type: str      # NUM, VAR, FUNC, OP, ALL, KEYWORD, SEP, PAREN_OPEN, PAREN_CLOSE, END
+    value: str     # нормализованное: "123", "x", "sin", "+", "all", "frac", "на", "(", ")"
 
 
 def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
@@ -20,9 +20,20 @@ def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
     current: Optional[List[str]] = None
 
     for word in words:
-        if word in reg.math_start and current is None:
+        is_math_word = (
+            word in reg.math_start
+            or word.isdigit()
+            or (word.isascii() and word.isalpha())
+        )
+        is_continue_word = (
+            word in reg.math_continue
+            or word.isdigit()
+            or (word.isascii() and word.isalpha())
+        )
+
+        if is_math_word and current is None:
             current = [word]
-        elif word in reg.math_continue and current is not None:
+        elif is_continue_word and current is not None:
             current.append(word)
         else:
             if current is not None:
@@ -39,11 +50,12 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
     tokens: List[Token] = []
     i = 0
     n = len(words)
+    paren_counter = 0
 
     while i < n:
         word = words[i]
 
-        # ── число ──
+        # ── число из словаря ──
         if word in reg.number_map or word in reg.decimal_markers:
             num_tokens, advance = _parse_number(words, i, reg)
             tokens.extend(num_tokens)
@@ -57,10 +69,22 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             continue
 
         # ── ключевое слово ──
-
         if word in reg.keyword_map:
             kw_type = reg.keyword_map[word]
-            tokens.append(Token("KEYWORD", kw_type))
+
+            if kw_type == "paren_open":
+                paren_counter += 1
+                tokens.append(Token("PAREN_OPEN", "("))
+            elif kw_type == "paren_close":
+                tokens.append(Token("PAREN_CLOSE", ")"))
+            elif kw_type == "paren_auto":
+                paren_counter += 1
+                if paren_counter % 2 == 1:
+                    tokens.append(Token("PAREN_OPEN", "("))
+                else:
+                    tokens.append(Token("PAREN_CLOSE", ")"))
+            else:
+                tokens.append(Token("KEYWORD", kw_type))
             i += 1
             continue
 
@@ -91,6 +115,34 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
 
         # ── слово-связка ──
         if word in reg.connector_words:
+            i += 1
+            continue
+
+        # ── символы операторов (fallback) ──
+        if word in {"+", "-", "*", "/", "=", "<", ">", "<=", ">=", "==", "!="}:
+            tokens.append(Token("OP", word))
+            i += 1
+            continue
+
+        # ── скобки символами (fallback) ──
+        if word == "(":
+            tokens.append(Token("PAREN_OPEN", "("))
+            i += 1
+            continue
+        if word == ")":
+            tokens.append(Token("PAREN_CLOSE", ")"))
+            i += 1
+            continue
+
+        # ── цифры (fallback) ──
+        if word.isdigit():
+            tokens.append(Token("NUM", word))
+            i += 1
+            continue
+
+        # ── латиница (fallback) ──
+        if word.isascii() and word.isalpha():
+            tokens.append(Token("VAR", word.lower()))
             i += 1
             continue
 

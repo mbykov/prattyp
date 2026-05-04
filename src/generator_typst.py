@@ -21,8 +21,12 @@ def _generate(node: ASTNode) -> str:
         return node.name
 
     if isinstance(node, FuncNode):
-        arg = _generate(node.argument)
-        return f"{node.name}({arg})"
+        arg = node.argument
+        # Убираем ParenNode вокруг аргумента — скобки функции достаточно
+        while isinstance(arg, ParenNode):
+            arg = arg.inner
+        arg_str = _generate(arg)
+        return f"{node.name}({arg_str})"
 
     if isinstance(node, BinOpNode):
         left = _generate(node.left)
@@ -42,7 +46,11 @@ def _generate(node: ASTNode) -> str:
         return f"frac({num}, {den})"
 
     if isinstance(node, ParenNode):
-        inner = _generate(node.inner)
-        return f"({inner})"
+        inner = node.inner
+        # Схлопываем двойные скобки: ((x)) → (x)
+        while isinstance(inner, ParenNode):
+            inner = inner.inner
+        inner_str = _generate(inner)
+        return f"({inner_str})"
 
     raise ValueError(f"Неизвестный узел AST: {type(node)}")

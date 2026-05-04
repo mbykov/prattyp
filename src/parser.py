@@ -1,9 +1,9 @@
 """
 Парсер потока токенов → AST.
-Pratt parser с приоритетами операторов.
+Pratt parser с поддержкой ALL, явных/неявных функций, скобок.
 """
 
-from typing import List, Callable, Dict
+from typing import List, Dict, Optional
 from .tokenizer import Token
 from .ast_nodes import (
     ASTNode, NumNode, VarNode, FuncNode,
@@ -12,23 +12,24 @@ from .ast_nodes import (
 )
 
 
-# Приоритеты (binding power) для бинарных операторов
-# (left_bp, right_bp)
+# Приоритеты: (left_bp, right_bp)
+# right_bp=0 для сравнений — правая часть как независимый островок (ALL работает)
 BINARY_BP: Dict[str, tuple] = {
-    "=":  (1, 2),
-    "==": (2, 3),
-    "!=": (2, 3),
-    "<":  (3, 4),
-    "<=": (3, 4),
-    ">":  (3, 4),
-    ">=": (3, 4),
+    "=":  (1, 0),
+    "==": (2, 0),
+    "!=": (2, 0),
+    "<":  (3, 0),
+    "<=": (3, 0),
+    ">":  (3, 0),
+    ">=": (3, 0),
     "+":  (4, 5),
     "-":  (4, 5),
     "*":  (5, 6),
     "/":  (5, 6),
 }
 
-UNARY_BP = 7  # унарный минус, функции
+UNARY_BP = 7          # унарный минус
+FUNC_BP = 3           # жадность неявной функции (захватывает +, -, *, /)
 
 
 def parse(tokens: List[Token]) -> ASTNode:
@@ -55,34 +56,23 @@ class _Parser:
     # ─── Pratt: главный метод ───────────────────────────
 
     def parse_expression(self, min_bp: int) -> ASTNode:
-        """Разбирает выражение с учётом минимальной силы связывания."""
+        """Разбирает выражение. min_bp — минимальная сила связывания."""
         left = self._parse_prefix()
 
         while True:
             t = self.peek()
 
-            # ALL: закрывает левый операнд
+            # ALL — стоп-кран или группировка
             if t.type == "ALL":
-                self.advance()
-                left = AllNode(inner=left)
-                continue
-
-            # divide в середине: как оператор / с приоритетом
-            if t.type == "KEYWORD" and t.value == "divide":
-                left_bp, right_bp = BINARY_BP["/"]
-                if left_bp < min_bp:
+                if min_bp > 0:
+                    # внутри контекста — прерываем, ALL вернётся наверх
                     break
+                # верхний уровень — группируем всё слева и продолжаем
                 self.advance()
-                # пропускаем "на"
-                if self.peek().type == "SEP":
-                    self.advance()
-                right = self.parse_expression(right_bp)
-                if isinstance(right, BinOpNode):
-                    right = ParenNode(inner=right)
-                left = BinOpNode(left=left, op="/", right=right)
+                left = ParenNode(inner=left)
                 continue
 
-            # Обычный бинарный оператор
+            # Бинарный оператор
             if t.type == "OP":
                 op = t.value
                 entry = BINARY_BP.get(op)
@@ -96,20 +86,43 @@ class _Parser:
                 left = BinOpNode(left=left, op=op, right=right)
                 continue
 
+            # KEYWORD divide в середине
+            if t.type == "KEYWORD" and t.value == "divide":
+                left_bp, right_bp = BINARY_BP["/"]
+                if left_bp < min_bp:
+                    break
+                self.advance()
+                if self.peek().type == "SEP":
+                    self.advance()
+                right = self.parse_expression(right_bp)
+                if isinstance(right, BinOpNode):
+                    right = ParenNode(inner=right)
+                left = BinOpNode(left=left, op="/", right=right)
+                continue
+
             break
 
         return left
 
-    # ─── Префиксные атомы ───────────────────────────────
+    # ─── Префиксы ───────────────────────────────────────
 
     def _parse_prefix(self) -> ASTNode:
         t = self.peek()
 
-        # frac: KEYWORD:frac <числитель> SEP:на <знаменатель>
+        # Скобка — явный контекст
+        if t.type == "PAREN_OPEN":
+            return self._parse_paren()
+
+        # ALL в начале — возвращаем как ключевое слово
+        if t.type == "ALL":
+            self.advance()
+            return VarNode(name="all")
+
+        # frac
         if t.type == "KEYWORD" and t.value == "frac":
             return self._parse_frac()
 
-        # divide в начале: KEYWORD:divide <левый> SEP:на <правый>
+        # divide в начале
         if t.type == "KEYWORD" and t.value == "divide":
             return self._parse_divide()
 
@@ -130,51 +143,61 @@ class _Parser:
 
         # Функция
         if t.type == "FUNC":
-            arg = self.parse_expression(UNARY_BP)
-            return FuncNode(name=t.value, argument=arg)
+            return self._parse_func(t.value)
 
         raise ValueError(f"Неожиданный токен в префиксе: {t}")
+
+    # ─── Функция: явный и неявный режим ─────────────────
+
+    def _parse_func(self, name: str) -> ASTNode:
+        """FUNC уже съеден. Определяем режим и парсим аргумент."""
+        if self.peek().type == "PAREN_OPEN":
+            # Явный режим: sin ( ... )
+            arg = self._parse_paren()
+        else:
+            # Неявный режим: sin ... all
+            arg = self.parse_expression(FUNC_BP)
+            # Съедаем all, если есть
+            if self.peek().type == "ALL":
+                self.advance()
+        return FuncNode(name=name, argument=arg)
+
+    # ─── Скобки ─────────────────────────────────────────
+
+    def _parse_paren(self) -> ASTNode:
+        """Съедает PAREN_OPEN, парсит до PAREN_CLOSE, возвращает inner."""
+        self.advance()  # PAREN_OPEN
+        inner = self.parse_expression(0)
+        if self.peek().type == "PAREN_CLOSE":
+            self.advance()
+        return inner
 
     # ─── Frac ───────────────────────────────────────────
 
     def _parse_frac(self) -> ASTNode:
-        """KEYWORD:frac <числитель> SEP:на <знаменатель>"""
         self.advance()  # KEYWORD:frac
-        numerator = self._parse_frac_operand()
-
-        if self.peek().type == "SEP":
-            self.advance()  # "на"
-
-        denominator = self._parse_frac_operand()
-        return FracNode(numerator=numerator, denominator=denominator)
-
-    def _parse_frac_operand(self) -> ASTNode:
-        """Парсит операнд дроби до SEP, END или ALL."""
-        left = self.parse_expression(0)
-        # ALL после операнда — закрываем
+        numerator = self.parse_expression(0)
         if self.peek().type == "ALL":
             self.advance()
-            left = AllNode(inner=left)
-        return left
+        if self.peek().type == "SEP":
+            self.advance()  # "на"
+        denominator = self.parse_expression(0)
+        if self.peek().type == "ALL":
+            self.advance()
+        return FracNode(numerator=numerator, denominator=denominator)
 
     # ─── Divide ─────────────────────────────────────────
 
     def _parse_divide(self) -> ASTNode:
-        self.advance()
+        self.advance()  # KEYWORD:divide
         left = self.parse_expression(0)
-
         if self.peek().type == "SEP":
-            self.advance()
-
+            self.advance()  # "на"
         right = self.parse_expression(0)
-
-        # Скобки для сложных операндов
         if isinstance(left, BinOpNode):
             left = ParenNode(inner=left)
         if isinstance(right, BinOpNode):
             right = ParenNode(inner=right)
-
         if self.peek().type == "ALL":
             self.advance()
-
         return BinOpNode(left=left, op="/", right=right)

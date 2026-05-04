@@ -14,37 +14,16 @@ class LangRegistry:
     """Словари одного языка, готовые к использованию токенизатором."""
     lang: str
 
-    # word → numeric value
     number_map: Dict[str, int] = field(default_factory=dict)
-
-    # word → variable name
     var_map: Dict[str, str] = field(default_factory=dict)
-
-    # word → function name
     func_map: Dict[str, str] = field(default_factory=dict)
-
-    # multi-word phrase → operator symbol
     op_map: Dict[str, str] = field(default_factory=dict)
-
-    # word → keyword type (frac, divide, sqrt, root, ...)
     keyword_map: Dict[str, str] = field(default_factory=dict)
-
-    # set of "all" words
     all_set: Set[str] = field(default_factory=set)
-
-    # set of math-starting words
     math_start: Set[str] = field(default_factory=set)
-
-    # set of math-continuing words
     math_continue: Set[str] = field(default_factory=set)
-
-    # decimal: "целых" → None, "десятых" → 10, "сотых" → 100, "тысячных" → 1000
     decimal_markers: Dict[str, Optional[int]] = field(default_factory=dict)
-
-    # слова-связки из составных операторов и ключевых фраз
     connector_words: Set[str] = field(default_factory=set)
-
-    # слова-разделители для frac/divide: "на" в "дробь ... на ..."
     frac_separator: Set[str] = field(default_factory=set)
 
 
@@ -91,7 +70,7 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         for phrase in phrases:
             reg.op_map[phrase] = symbol
 
-    # ── Ключевые слова (frac, divide, sqrt, root...) ───
+    # ── Ключевые слова (frac, divide, paren_open, paren_close, paren_auto) ──
     for kw_type, words in data.get("keywords", {}).items():
         for w in words:
             reg.keyword_map[w] = kw_type
@@ -99,7 +78,7 @@ def load_registry(lang: str = "ru") -> LangRegistry:
     # ── All ────────────────────────────────────────────
     reg.all_set = set(data.get("all", []))
 
-    # ── Разделитель для frac: "на" ─────────────────────
+    # ── Разделитель для frac ───────────────────────────
     reg.frac_separator = {"на"}
 
     # ── Слова-связки ───────────────────────────────────
@@ -112,10 +91,12 @@ def load_registry(lang: str = "ru") -> LangRegistry:
                 and word not in reg.func_map
                 and word not in reg.decimal_markers
                 and word not in reg.keyword_map
+                and word not in reg.all_set
             ):
                 connector_words.add(word)
-    # Добавляем разделители frac
     connector_words |= reg.frac_separator
+    for w in data.get("connectors", []):
+        connector_words.add(w)
     reg.connector_words = connector_words
 
     # ── Множества для поиска островов ──────────────────
@@ -125,6 +106,7 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         | set(reg.func_map.keys())
         | set(reg.decimal_markers.keys())
         | set(reg.keyword_map.keys())
+        | reg.all_set
         | {"минус"}
     )
 
@@ -134,5 +116,10 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         | reg.all_set
         | connector_words
     )
+
+    # ── Символы операторов (fallback для внешнего препроцессора) ──
+    math_symbols = {"+", "-", "*", "/", "=", "<", ">", "(", ")"}
+    reg.math_start |= math_symbols
+    reg.math_continue |= math_symbols
 
     return reg

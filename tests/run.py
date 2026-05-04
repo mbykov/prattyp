@@ -51,7 +51,7 @@ def load_tests(path: Path) -> list[dict]:
                 continue
             try:
                 test = json.loads(line)
-                if "input" in test and "expected" in test:
+                if "input" in test and "expected" in test and test["input"] != "" and test["expected"] != "":
                     tests.append(test)
             except json.JSONDecodeError:
                 pass
@@ -59,7 +59,6 @@ def load_tests(path: Path) -> list[dict]:
 
 
 def load_all_tests(tests_dir: Path) -> list[tuple[str, list[dict]]]:
-    """Загружает все .jsonl файлы из tests/ (без вложенных папок)."""
     all_tests = []
     for f in sorted(tests_dir.glob("*.jsonl")):
         file_tests = load_tests(f)
@@ -130,6 +129,7 @@ def main():
     total_failed = 0
     total_count = 0
     all_failed_blocks = []
+    failed_summary = []
 
     for file_name, tests in test_suites:
         print("=" * 60)
@@ -144,7 +144,7 @@ def main():
 
             if ok:
                 passed += 1
-                print(f"  ✅ тест {i:02d}: {voice} → {expected}")
+                print(f"  ✅ {i:02d}: {voice} → {expected}")
             else:
                 failed += 1
                 block = []
@@ -152,7 +152,7 @@ def main():
                 block.append(f"   ожидал:  {expected}")
                 block.append(f"   получил: {actual}")
 
-                print(f"  ❌ тест {i:02d}: FAIL")
+                print(f"  ❌ {i:02d}: FAIL")
                 print(f"     вход:    {voice}")
                 print(f"     ожидал:  {expected}")
                 print(f"     получил: {actual}")
@@ -163,6 +163,7 @@ def main():
                 block.append(diag)
 
                 all_failed_blocks.append("\n".join(block))
+                failed_summary.append((f"{file_name}:{i:02d}", voice, expected, actual))
 
         total_passed += passed
         total_failed += failed
@@ -177,8 +178,15 @@ def main():
     print(f"📊 Всего:    {total_count}")
     print("=" * 60)
 
+    if failed_summary:
+        print("\n📋 Сводка упавших тестов (input → expected → got):")
+        print("-" * 55)
+        for test_id, inp, exp, got in failed_summary:
+            print(f"  {test_id}: {inp} → {exp} → {got}")
+
     if use_clip and total_failed > 0:
-        clip_text = "\n\n".join(all_failed_blocks) + "\n\n" + "=" * 60 + "\n" + f"✅ Пройдено: {total_passed}\n❌ Упало:   {total_failed}\n📊 Всего:    {total_count}\n" + "=" * 60
+        clip_parts = all_failed_blocks + ["", "=" * 60, f"✅ Пройдено: {total_passed}", f"❌ Упало:   {total_failed}", f"📊 Всего:    {total_count}", "=" * 60]
+        clip_text = "\n\n".join(clip_parts)
         if copy_to_clipboard(clip_text):
             print("\n📋 Упавшие тесты с диагностикой скопированы в буфер.")
         else:
