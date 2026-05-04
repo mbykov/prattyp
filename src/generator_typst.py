@@ -6,6 +6,7 @@ from .ast_nodes import (
     ASTNode, NumNode, VarNode, FuncNode,
     BinOpNode, UnaryOpNode, AllNode,
     FracNode, ParenNode,
+    PowNode, SqrtNode, RootNode,
 )
 
 
@@ -22,7 +23,6 @@ def _generate(node: ASTNode) -> str:
 
     if isinstance(node, FuncNode):
         arg = node.argument
-        # Убираем ParenNode вокруг аргумента — скобки функции достаточно
         while isinstance(arg, ParenNode):
             arg = arg.inner
         arg_str = _generate(arg)
@@ -47,10 +47,31 @@ def _generate(node: ASTNode) -> str:
 
     if isinstance(node, ParenNode):
         inner = node.inner
-        # Схлопываем двойные скобки: ((x)) → (x)
         while isinstance(inner, ParenNode):
             inner = inner.inner
         inner_str = _generate(inner)
         return f"({inner_str})"
+
+    if isinstance(node, PowNode):
+        base = _generate(node.base)
+        exp = _generate(node.exponent)
+        return f"{base}^{exp}"
+
+    if isinstance(node, SqrtNode):
+        rad = node.radicand
+        while isinstance(rad, ParenNode):
+            rad = rad.inner
+        rad_str = _generate(rad)
+        return f"sqrt({rad_str})"
+
+    if isinstance(node, RootNode):
+        deg = node.degree
+        rad = node.radicand
+        while isinstance(rad, ParenNode):
+            rad = rad.inner
+        deg_str = _generate(deg)
+        rad_str = _generate(rad)
+        return f"root({deg_str}, {rad_str})"
+
 
     raise ValueError(f"Неизвестный узел AST: {type(node)}")

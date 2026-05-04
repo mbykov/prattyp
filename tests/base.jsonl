@@ -4,21 +4,47 @@
 {"input": "игрек делить на четыре", "expected": "y / 4"}
 {"input": "синус икс", "expected": "sin(x)"}
 {"input": "косинус альфа", "expected": "cos(alpha)"}
-{"input": "один плюс икс все", "expected": "1 + x"}
-{"input": "пять умножить на игрек все", "expected": "5 * y"}
-{"input": "синус икс плюс косинус игрек все", "expected": "sin(x) + cos(y)"}
+{"input": "один плюс икс все", "expected": "(1 + x)"}
+{"input": "пять умножить на игрек все", "expected": "(5 * y)"}
+{"input": "синус икс плюс косинус игрек все", "expected": "sin(x + cos(y))"}
 {"input": "сто двадцать три", "expected": "123"}
 {"input": "ноль целых пять десятых", "expected": "0.5"}
 {"input": "три целых четырнадцать сотых", "expected": "3.14"}
-{"input": "икс плюс игрек плюс зет все", "expected": "x + y + z"}
+{"input": "икс плюс игрек плюс зет все", "expected": "(x + y + z)"}
 {"input": "минус икс", "expected": "-x"}
 {"input": "посчитай икс плюс два", "expected": "посчитай x + 2"}
 {"input": "икс плюс два и три умножить на четыре", "expected": "x + 2 и 3 * 4"}
 {"input": "отсюда следует что икс больше нуля", "expected": "отсюда следует что x > 0"}
 {"input": "очевидно что синус икс равен нулю", "expected": "очевидно что sin(x) = 0"}
 
-{"input": "синус от косинус а плюс бэ все все", "expected": "sin(cos( a + b ))"}
-{"input": "a плюс синус косинус а плюс b все все все делить на три", "expected": "((a + sin(cos(a + b)))) / 3"}
+{"input": "синус от косинус а плюс бэ все все", "expected": "sin(cos(a + b))"}
+{"input": "a плюс синус косинус а плюс b все все все делить на три", "expected": "(a + sin(cos(a + b))) / 3"}
+
+
+{"input": "икс в квадрате", "expected": "x^2"}
+{"input": "икс в кубе", "expected": "x^3"}
+{"input": "икс в степени игрек", "expected": "x^y"}
+{"input": "икс во второй степени", "expected": "x^2"}
+{"input": "икс в третьей степени", "expected": "x^3"}
+{"input": "икс в степени два", "expected": "x^2"}
+{"input": "корень из икс", "expected": "sqrt(x)"}
+{"input": "корень квадратный из икс", "expected": "sqrt(x)"}
+{"input": "корень кубический из икс", "expected": "root(3, x)"}
+{"input": "корень в третьей степени из икс", "expected": "root(3, x)"}
+{"input": "корень в степени игрек из икс", "expected": "root(y, x)"}
+{"input": "корень из икс плюс игрек все", "expected": "sqrt(x + y)"}
+{"input": "икс в квадрате плюс игрек", "expected": "x^2 + y"}
+{"input": "икс плюс игрек все в квадрате", "expected": "(x + y)^2"}
+
+
+{"input": "tg икс", "expected": "tg(x)"}
+{"input": "ctg икс", "expected": "ctg(x)"}
+{"input": "ln икс", "expected": "ln(x)"}
+{"input": "log икс", "expected": "log(x)"}
+{"input": "натуральный логарифм икс", "expected": "ln(x)"}
+{"input": "синус tg икс все", "expected": "sin(tg(x))"}
+{"input": "log икс плюс игрек все", "expected": "log(x + y)"}
+
 {"input": "", "expected": ""}
 {"input": "", "expected": ""}
 {"input": "", "expected": ""}

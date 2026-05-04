@@ -1,5 +1,5 @@
 """
-Prattyp Tokenizer v8
+Prattyp Tokenizer v9
 Не содержит кириллицы — все слова приходят из LangRegistry.
 """
 
@@ -66,6 +66,13 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
         if word in reg.all_set:
             tokens.append(Token("ALL", "all"))
             i += 1
+            continue
+
+        # ── многословная функция ──
+        func_token, advance = _try_match_func(words, i, reg)
+        if func_token is not None:
+            tokens.append(func_token)
+            i += advance
             continue
 
         # ── ключевое слово ──
@@ -152,6 +159,16 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
 
     tokens.append(Token("END", ""))
     return tokens
+
+
+def _try_match_func(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional[Token], int]:
+    """Ищет многословную функцию начиная с позиции i."""
+    candidates = sorted(reg.func_phrases.keys(), key=len, reverse=True)
+    for phrase in candidates:
+        phrase_words = phrase.split()
+        if words[i : i + len(phrase_words)] == phrase_words:
+            return Token("FUNC", reg.func_phrases[phrase]), len(phrase_words)
+    return None, 0
 
 
 def _try_match_op(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional[Token], int]:

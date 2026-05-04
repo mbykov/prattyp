@@ -17,6 +17,7 @@ class LangRegistry:
     number_map: Dict[str, int] = field(default_factory=dict)
     var_map: Dict[str, str] = field(default_factory=dict)
     func_map: Dict[str, str] = field(default_factory=dict)
+    func_phrases: Dict[str, str] = field(default_factory=dict)
     op_map: Dict[str, str] = field(default_factory=dict)
     keyword_map: Dict[str, str] = field(default_factory=dict)
     all_set: Set[str] = field(default_factory=set)
@@ -65,12 +66,17 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         for w in words:
             reg.func_map[w] = func
 
+    # ── Многословные функции ───────────────────────────
+    for func_name, phrases in data.get("function_phrases", {}).items():
+        for phrase in phrases:
+            reg.func_phrases[phrase] = func_name
+
     # ── Операторы ──────────────────────────────────────
     for symbol, phrases in data.get("operators", {}).get("binary", {}).items():
         for phrase in phrases:
             reg.op_map[phrase] = symbol
 
-    # ── Ключевые слова (frac, divide, paren_open, paren_close, paren_auto) ──
+    # ── Ключевые слова ─────────────────────────────────
     for kw_type, words in data.get("keywords", {}).items():
         for w in words:
             reg.keyword_map[w] = kw_type
@@ -97,6 +103,10 @@ def load_registry(lang: str = "ru") -> LangRegistry:
     connector_words |= reg.frac_separator
     for w in data.get("connectors", []):
         connector_words.add(w)
+    # Добавляем слова из многословных функций
+    for phrase in reg.func_phrases:
+        for word in phrase.split():
+            connector_words.add(word)
     reg.connector_words = connector_words
 
     # ── Множества для поиска островов ──────────────────
@@ -117,7 +127,13 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         | connector_words
     )
 
-    # ── Символы операторов (fallback для внешнего препроцессора) ──
+    # Слова из многословных функций — в math_start и math_continue
+    for phrase in reg.func_phrases:
+        for word in phrase.split():
+            reg.math_start.add(word)
+            reg.math_continue.add(word)
+
+    # ── Символы операторов (fallback) ──────────────────
     math_symbols = {"+", "-", "*", "/", "=", "<", ">", "(", ")"}
     reg.math_start |= math_symbols
     reg.math_continue |= math_symbols

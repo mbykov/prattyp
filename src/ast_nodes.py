@@ -46,9 +46,23 @@ class ParenNode:
     """Скобки: (выражение) — для явного указания границ."""
     inner: 'ASTNode'
 
+@dataclass
+class PowNode:
+    base: 'ASTNode'
+    exponent: 'ASTNode'
+
+@dataclass
+class SqrtNode:
+    radicand: 'ASTNode'
+
+@dataclass
+class RootNode:
+    degree: 'ASTNode'
+    radicand: 'ASTNode'
 
 ASTNode = Union[
     NumNode, VarNode, FuncNode,
     BinOpNode, UnaryOpNode, AllNode,
     FracNode, ParenNode,
+    PowNode, SqrtNode, RootNode,
 ]
