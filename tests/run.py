@@ -43,12 +43,18 @@ def copy_to_clipboard(text: str) -> bool:
 
 
 def load_tests(path: Path) -> list[dict]:
+    """Загружает тесты из .jsonl. Пропускает пустые строки, комментарии #.
+    Останавливается на первой строке, которая не начинается с { и не пустая."""
     tests = []
     with open(path, encoding="utf-8") as f:
-        for line_no, line in enumerate(f, 1):
+        for line in f:
             line = line.strip()
-            if not line or line.startswith("#"):
+            if not line:
                 continue
+            if line.startswith("#"):
+                continue
+            if not line.startswith("{"):
+                break
             try:
                 test = json.loads(line)
                 if "input" in test and "expected" in test and test["input"] != "" and test["expected"] != "":

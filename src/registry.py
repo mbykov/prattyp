@@ -133,6 +133,11 @@ def load_registry(lang: str = "ru") -> LangRegistry:
             reg.math_start.add(word)
             reg.math_continue.add(word)
 
+    # Специфичные слова, которые могут начинать остров перед функцией
+    function_starters = {"функция", "извлечь"}
+    reg.math_start |= function_starters
+    reg.math_continue |= function_starters
+
     # ── Символы операторов (fallback) ──────────────────
     math_symbols = {"+", "-", "*", "/", "=", "<", ">", "(", ")"}
     reg.math_start |= math_symbols

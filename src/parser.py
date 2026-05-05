@@ -88,7 +88,6 @@ class _Parser:
                 if left_bp < min_bp:
                     break
                 self.advance()  # "в"/"во"
-                # Проверяем квадрат/куб
                 if self.peek().type == "KEYWORD" and self.peek().value == "square":
                     self.advance()
                     exponent = NumNode(value="2")
@@ -98,6 +97,12 @@ class _Parser:
                 else:
                     exponent = self.parse_expression(right_bp)
                 left = PowNode(base=left, exponent=exponent)
+                continue
+
+            # Постфиксный корень: VAR под корнем
+            if t.type == "KEYWORD" and t.value == "sqrt_postfix":
+                self.advance()
+                left = SqrtNode(radicand=left)
                 continue
 
             # Бинарный оператор
@@ -128,9 +133,23 @@ class _Parser:
                 left = BinOpNode(left=left, op="/", right=right)
                 continue
 
+            # Неявное умножение (пробел между операндами)
+            if self._is_atom(t):
+                left_bp, right_bp = BINARY_BP["*"]
+                if left_bp < min_bp:
+                    break
+                right = self.parse_expression(right_bp)
+                left = BinOpNode(left=left, op="*", right=right)
+                continue
+
             break
 
         return left
+
+    def _is_atom(self, t: Token) -> bool:
+        """Проверяет, является ли токен началом операнда (для неявного умножения)."""
+        return t.type in ("VAR", "NUM", "FUNC", "PAREN_OPEN") or \
+               (t.type == "KEYWORD" and t.value in ("frac", "divide", "sqrt", "pow"))
 
     # ─── Префиксы ───────────────────────────────────────
 
@@ -220,18 +239,15 @@ class _Parser:
 
     def _parse_sqrt(self) -> ASTNode:
         self.advance()  # KEYWORD:sqrt
-        # корень квадратный
         if self.peek().type == "KEYWORD" and self.peek().value == "square":
             self.advance()
             radicand = self.parse_expression(0)
             return SqrtNode(radicand=radicand)
-        # корень кубический
         if self.peek().type == "KEYWORD" and self.peek().value == "cube":
             self.advance()
             degree = NumNode(value="3")
             radicand = self.parse_expression(0)
             return RootNode(degree=degree, radicand=radicand)
-        # корень в ... степени
         if self.peek().type == "KEYWORD" and self.peek().value == "pow":
             self.advance()  # "в"/"во"
             if self.peek().type == "KEYWORD" and self.peek().value == "square":
@@ -244,7 +260,6 @@ class _Parser:
                 degree = self.parse_expression(0)
             radicand = self.parse_expression(0)
             return RootNode(degree=degree, radicand=radicand)
-        # корень из ...
         radicand = self.parse_expression(0)
         return SqrtNode(radicand=radicand)
 
@@ -286,8 +301,20 @@ class _Parser:
                         right2 = self._parse_atom_for_until()
                         right = BinOpNode(left=right, op=op2, right=right2)
                         continue
+                    if self._is_atom(t2):
+                        lbp, rbp = BINARY_BP["*"]
+                        self.advance()
+                        right2 = self._parse_atom_for_until()
+                        right = BinOpNode(left=right, op="*", right=right2)
+                        continue
                     break
                 left = BinOpNode(left=left, op=op, right=right)
+                continue
+            if self._is_atom(t):
+                left_bp, right_bp = BINARY_BP["*"]
+                self.advance()
+                right = self._parse_atom_for_until()
+                left = BinOpNode(left=left, op="*", right=right)
                 continue
             break
         return left

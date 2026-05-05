@@ -1,0 +1,5 @@
+{"input": "синус 4 * b", "expected": "sin(4 * b)"}
+{"input": "синус z * t", "expected": "sin(z * t)"}
+{"input": "синус от 3 * a", "expected": "sin(3 * a)"}
+{"input": "синус от 3.1 * x", "expected": "sin(3.1 * x)"}
+{"input": "синус от c", "expected": "sin(c)"}

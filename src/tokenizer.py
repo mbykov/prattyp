@@ -1,8 +1,9 @@
 """
-Prattyp Tokenizer v9
+Prattyp Tokenizer v10
 Не содержит кириллицы — все слова приходят из LangRegistry.
 """
 
+import re
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from .registry import LangRegistry
@@ -23,11 +24,15 @@ def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
         is_math_word = (
             word in reg.math_start
             or word.isdigit()
+            or bool(re.match(r'^\d+\.\d+$', word))
+            or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word))
             or (word.isascii() and word.isalpha())
         )
         is_continue_word = (
             word in reg.math_continue
             or word.isdigit()
+            or bool(re.match(r'^\d+\.\d+$', word))
+            or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word))
             or (word.isascii() and word.isalpha())
         )
 
@@ -141,6 +146,20 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             i += 1
             continue
 
+        # ── число с плавающей точкой (fallback): 89.9 ──
+        if re.match(r'^\d+\.\d+$', word):
+            tokens.append(Token("NUM", word))
+            i += 1
+            continue
+
+        # ── число с точкой и буквой: 9.0t → NUM + VAR ──
+        float_var_match = re.match(r'^(\d+\.\d+)([a-zA-Z]+)$', word)
+        if float_var_match:
+            tokens.append(Token("NUM", float_var_match.group(1)))
+            tokens.append(Token("VAR", float_var_match.group(2).lower()))
+            i += 1
+            continue
+
         # ── цифры (fallback) ──
         if word.isdigit():
             tokens.append(Token("NUM", word))
@@ -162,7 +181,6 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
 
 
 def _try_match_func(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional[Token], int]:
-    """Ищет многословную функцию начиная с позиции i."""
     candidates = sorted(reg.func_phrases.keys(), key=len, reverse=True)
     for phrase in candidates:
         phrase_words = phrase.split()
@@ -179,13 +197,13 @@ def _try_match_op(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional
             return Token("OP", reg.op_map[phrase]), len(phrase_words)
     return None, 0
 
-
 def _parse_number(words: List[str], start: int, reg: LangRegistry) -> Tuple[List[Token], int]:
     i = start
     integer_part = 0
     decimal_value = 0
     decimal_divisor = 1
     in_decimal = False
+    saw_zero = False  # флаг "ноль" без "целых"
 
     while i < len(words):
         word = words[i]
@@ -201,6 +219,11 @@ def _parse_number(words: List[str], start: int, reg: LangRegistry) -> Tuple[List
             break
 
         if word not in reg.number_map:
+            # "ноль" + число без "целых" → дробное
+            if integer_part == 0 and not in_decimal and i > start and reg.number_map.get(words[i-1]) == 0:
+                if reg.number_map[word] is not None:
+                    in_decimal = True
+                    continue
             break
 
         value = reg.number_map[word]

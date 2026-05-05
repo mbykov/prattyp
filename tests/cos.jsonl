@@ -1,0 +1,5 @@
+{"input": "функция косинуса z * y", "expected": "cos(z * y)"}
+{"input": "косинус аргумента a * z", "expected": "cos(a * z)"}
+{"input": "косинус от 3 * z", "expected": "cos(3 * z)"}
+{"input": "косинус от 8.6 * y", "expected": "cos(8.6 * y)"}
+{"input": "косинус от b", "expected": "cos(b)"}
