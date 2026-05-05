@@ -1,25 +1,18 @@
 """
-Prattyp Tokenizer v15 — PREP + контекстное разрешение, func_phrases для исключений.
+Prattyp Tokenizer v13
+Не содержит кириллицы — все слова приходят из LangRegistry.
 """
 
 import re
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from .registry import LangRegistry
 
 
+@dataclass(frozen=True)
 class Token:
-    def __init__(self, type: str, value: str):
-        self.type = type
-        self.value = value
-
-    def __repr__(self):
-        return f"Token(type='{self.type}', value='{self.value}')"
-
-    def __eq__(self, other):
-        return self.type == other.type and self.value == other.value
-
-
-PREPOSITIONS = {"в", "во", "на", "из", "от", "под", "к", "по", "над", "до"}
+    type: str
+    value: str
 
 
 def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
@@ -28,26 +21,24 @@ def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
     current: Optional[List[str]] = None
 
     for word in words:
-        is_math = (
+        is_math_word = (
             word in reg.math_start
-            or word in PREPOSITIONS
             or word.isdigit()
             or bool(re.match(r'^\d+\.\d+$', word))
             or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word))
             or (word.isascii() and word.isalpha())
         )
-        is_cont = (
+        is_continue_word = (
             word in reg.math_continue
-            or word in PREPOSITIONS
             or word.isdigit()
             or bool(re.match(r'^\d+\.\d+$', word))
             or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word))
             or (word.isascii() and word.isalpha())
         )
 
-        if is_math and current is None:
+        if is_math_word and current is None:
             current = [word]
-        elif is_cont and current is not None:
+        elif is_continue_word and current is not None:
             current.append(word)
         else:
             if current is not None:
@@ -61,8 +52,6 @@ def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
 
 
 def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
-    from .lib.prepositions import resolve_prepositions
-
     tokens: List[Token] = []
     i = 0
     n = len(words)
@@ -70,6 +59,13 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
 
     while i < n:
         word = words[i]
+
+        # ── многословное число ──
+        num_token, advance = _try_match_number_phrase(words, i, reg)
+        if num_token is not None:
+            tokens.append(num_token)
+            i += advance
+            continue
 
         # ── число из словаря ──
         if word in reg.number_map or word in reg.decimal_markers:
@@ -91,9 +87,17 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             i += advance
             continue
 
+        # ── многословное ключевое слово ──
+        kw_token, advance = _try_match_keyword_phrase(words, i, reg)
+        if kw_token is not None:
+            tokens.append(kw_token)
+            i += advance
+            continue
+
         # ── ключевое слово ──
         if word in reg.keyword_map:
             kw_type = reg.keyword_map[word]
+
             if kw_type == "paren_open":
                 paren_counter += 1
                 tokens.append(Token("PAREN_OPEN", "("))
@@ -107,6 +111,12 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
                     tokens.append(Token("PAREN_CLOSE", ")"))
             else:
                 tokens.append(Token("KEYWORD", kw_type))
+            i += 1
+            continue
+
+        # ── разделитель frac ("на") ──
+        if word in reg.frac_separator:
+            tokens.append(Token("SEP", word))
             i += 1
             continue
 
@@ -127,12 +137,6 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
         if op_token is not None:
             tokens.append(op_token)
             i += advance
-            continue
-
-        # ── PREP (до connectors!) ──
-        if word in PREPOSITIONS:
-            tokens.append(Token("PREP", word))
-            i += 1
             continue
 
         # ── слово-связка ──
@@ -163,10 +167,10 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             continue
 
         # ── float + буква ──
-        m = re.match(r'^(\d+\.\d+)([a-zA-Z]+)$', word)
-        if m:
-            tokens.append(Token("NUM", m.group(1)))
-            tokens.append(Token("VAR", m.group(2).lower()))
+        float_var_match = re.match(r'^(\d+\.\d+)([a-zA-Z]+)$', word)
+        if float_var_match:
+            tokens.append(Token("NUM", float_var_match.group(1)))
+            tokens.append(Token("VAR", float_var_match.group(2).lower()))
             i += 1
             continue
 
@@ -186,11 +190,19 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
         i += 1
 
     tokens.append(Token("END", ""))
-    tokens = resolve_prepositions(tokens, reg.prep_rules)
     return tokens
 
 
-def _try_match_func(words, i, reg):
+def _try_match_number_phrase(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional[Token], int]:
+    candidates = sorted(reg.number_phrases.keys(), key=len, reverse=True)
+    for phrase in candidates:
+        phrase_words = phrase.split()
+        if words[i : i + len(phrase_words)] == phrase_words:
+            return Token("NUM", reg.number_phrases[phrase]), len(phrase_words)
+    return None, 0
+
+
+def _try_match_func(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional[Token], int]:
     candidates = sorted(reg.func_phrases.keys(), key=len, reverse=True)
     for phrase in candidates:
         phrase_words = phrase.split()
@@ -199,7 +211,16 @@ def _try_match_func(words, i, reg):
     return None, 0
 
 
-def _try_match_op(words, i, reg):
+def _try_match_keyword_phrase(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional[Token], int]:
+    candidates = sorted(reg.keyword_phrases.keys(), key=len, reverse=True)
+    for phrase in candidates:
+        phrase_words = phrase.split()
+        if words[i : i + len(phrase_words)] == phrase_words:
+            return Token("KEYWORD", reg.keyword_phrases[phrase]), len(phrase_words)
+    return None, 0
+
+
+def _try_match_op(words: List[str], i: int, reg: LangRegistry) -> Tuple[Optional[Token], int]:
     candidates = sorted(reg.op_map.keys(), key=len, reverse=True)
     for phrase in candidates:
         phrase_words = phrase.split()
@@ -208,7 +229,7 @@ def _try_match_op(words, i, reg):
     return None, 0
 
 
-def _parse_number(words, start, reg):
+def _parse_number(words: List[str], start: int, reg: LangRegistry) -> Tuple[List[Token], int]:
     i = start
     integer_part = 0
     decimal_value = 0
@@ -224,10 +245,11 @@ def _parse_number(words, start, reg):
             continue
 
         if word in reg.decimal_markers and reg.decimal_markers[word] is not None:
-            divisor = reg.decimal_markers[word]
+            decimal_divisor = reg.decimal_markers[word]
             i += 1
-            decimal_digits = len(str(divisor)) - 1
-            result = integer_part + decimal_value / divisor
+            if decimal_digits == 0:
+                decimal_digits = len(str(decimal_divisor)) - 1
+            result = integer_part + decimal_value / decimal_divisor
             result_str = f"{result:.{decimal_digits}f}" if decimal_digits > 0 else str(int(result))
             return [Token("NUM", result_str)], i - start
 

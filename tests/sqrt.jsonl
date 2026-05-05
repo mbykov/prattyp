@@ -1,5 +1,5 @@
-{"input": "корень из восемь точка семь шесть b", "expected": "sqrt(8.76 * b)"}
-{"input": "a под корнем", "expected": "sqrt(a)"}
-{"input": "шесть целых один шесть сотых в степени одна вторая", "expected": "sqrt(6.16)"}
-{"input": "x z в степени одна вторая", "expected": "sqrt(x * z)"}
-{"input": "корень квадратный из четыре целых шесть", "expected": "sqrt(4.6)"}
+{"input": "восемь целых девять c под квадратным корнем", "expected": "sqrt(8.9 * c)"}
+{"input": "x под корнем", "expected": "sqrt(x)"}
+{"input": "корень из один целых один n", "expected": "sqrt(1.1 * n)"}
+{"input": "квадратный корень из c b", "expected": "sqrt(c * b)"}
+{"input": "семь целых два четыре b под корнем", "expected": "sqrt(7.24 * b)"}

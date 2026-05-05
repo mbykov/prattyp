@@ -1,6 +1,5 @@
 """
-Загружает словари из i18n/*.json, строит обратные индексы
-слово → (тип, значение) для быстрого поиска при токенизации.
+Загружает словари из i18n/*.json, строит обратные индексы.
 """
 
 import json
@@ -11,9 +10,7 @@ from typing import Dict, Optional, Set
 
 @dataclass
 class LangRegistry:
-    """Словари одного языка, готовые к использованию токенизатором."""
     lang: str
-
     number_map: Dict[str, int] = field(default_factory=dict)
     var_map: Dict[str, str] = field(default_factory=dict)
     func_map: Dict[str, str] = field(default_factory=dict)
@@ -25,11 +22,10 @@ class LangRegistry:
     math_continue: Set[str] = field(default_factory=set)
     decimal_markers: Dict[str, Optional[int]] = field(default_factory=dict)
     connector_words: Set[str] = field(default_factory=set)
-    frac_separator: Set[str] = field(default_factory=set)
+    prep_rules: dict = field(default_factory=dict)
 
 
 def load_registry(lang: str = "ru") -> LangRegistry:
-    """Загружает языковой пакет из i18n/<lang>.json."""
     i18n_dir = Path(__file__).parent.parent / "i18n"
     path = i18n_dir / f"{lang}.json"
 
@@ -38,78 +34,55 @@ def load_registry(lang: str = "ru") -> LangRegistry:
 
     reg = LangRegistry(lang=data["lang"])
 
-    # ── Числа ──────────────────────────────────────────
     numbers = data.get("numbers", {})
     for key, words in numbers.items():
-        if key.startswith("decimal_"):
+        if key.startswith("decimal_") or key == "decimal_marker":
             continue
-        if key == "decimal_marker":
-            continue
-        value = int(key)
         for w in words:
-            reg.number_map[w] = value
+            reg.number_map[w] = int(key)
 
-    # ── Десятичные маркеры ─────────────────────────────
     for w in numbers.get("decimal_marker", []):
         reg.decimal_markers[w] = None
     for key, divisor in [("decimal_10", 10), ("decimal_100", 100), ("decimal_1000", 1000)]:
         for w in numbers.get(key, []):
             reg.decimal_markers[w] = divisor
 
-    # ── Переменные ─────────────────────────────────────
     for var, words in data.get("variables", {}).items():
         for w in words:
             reg.var_map[w] = var
 
-    # ── Функции ────────────────────────────────────────
     for func, words in data.get("functions", {}).items():
         for w in words:
             reg.func_map[w] = func
 
-    # ── Многословные функции ───────────────────────────
-    for func_name, phrases in data.get("function_phrases", {}).items():
+    for func_name, phrases in data.get("func_phrases", {}).items():
         for phrase in phrases:
             reg.func_phrases[phrase] = func_name
 
-    # ── Операторы ──────────────────────────────────────
     for symbol, phrases in data.get("operators", {}).get("binary", {}).items():
         for phrase in phrases:
             reg.op_map[phrase] = symbol
 
-    # ── Ключевые слова ─────────────────────────────────
     for kw_type, words in data.get("keywords", {}).items():
         for w in words:
             reg.keyword_map[w] = kw_type
 
-    # ── All ────────────────────────────────────────────
     reg.all_set = set(data.get("all", []))
+    reg.prep_rules = data.get("prep_resolution", {})
 
-    # ── Разделитель для frac ───────────────────────────
-    reg.frac_separator = {"на"}
+    connector_words = set(data.get("connectors", []))
 
-    # ── Слова-связки ───────────────────────────────────
-    connector_words: Set[str] = set()
     for phrase in reg.op_map.keys():
         for word in phrase.split():
-            if (
-                word not in reg.number_map
-                and word not in reg.var_map
-                and word not in reg.func_map
-                and word not in reg.decimal_markers
-                and word not in reg.keyword_map
-                and word not in reg.all_set
-            ):
+            if word not in reg.number_map and word not in reg.var_map and word not in reg.func_map and word not in reg.keyword_map:
                 connector_words.add(word)
-    connector_words |= reg.frac_separator
-    for w in data.get("connectors", []):
-        connector_words.add(w)
-    # Добавляем слова из многословных функций
+
     for phrase in reg.func_phrases:
         for word in phrase.split():
             connector_words.add(word)
+
     reg.connector_words = connector_words
 
-    # ── Множества для поиска островов ──────────────────
     reg.math_start = (
         set(reg.number_map.keys())
         | set(reg.var_map.keys())
@@ -127,18 +100,14 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         | connector_words
     )
 
-    # Слова из многословных функций — в math_start и math_continue
     for phrase in reg.func_phrases:
         for word in phrase.split():
             reg.math_start.add(word)
             reg.math_continue.add(word)
 
-    # Специфичные слова, которые могут начинать остров перед функцией
-    function_starters = {"функция", "извлечь"}
-    reg.math_start |= function_starters
-    reg.math_continue |= function_starters
+    reg.math_start |= {"функция", "извлечь"}
+    reg.math_continue |= {"функция", "извлечь"}
 
-    # ── Символы операторов (fallback) ──────────────────
     math_symbols = {"+", "-", "*", "/", "=", "<", ">", "(", ")"}
     reg.math_start |= math_symbols
     reg.math_continue |= math_symbols

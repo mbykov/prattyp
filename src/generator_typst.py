@@ -55,6 +55,10 @@ def _generate(node: ASTNode) -> str:
     if isinstance(node, PowNode):
         base = _generate(node.base)
         exp = _generate(node.exponent)
+        if isinstance(node.base, (BinOpNode, UnaryOpNode)):
+            base = f"({base})"
+        if isinstance(node.exponent, (BinOpNode, UnaryOpNode)):
+            exp = f"({exp})"
         return f"{base}^{exp}"
 
     if isinstance(node, SqrtNode):

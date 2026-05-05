@@ -7,6 +7,7 @@ Prattyp Test Runner
   uv run tests/run.py                  # все .jsonl в tests/
   uv run tests/run.py --clip           # копировать упавшие + диагностику в буфер
   uv run tests/run.py --file frac.jsonl  # только указанный файл
+  uv run tests/run.py --all            # сгенерировать и запустить тесты для всех символов
 """
 
 import json
@@ -43,8 +44,7 @@ def copy_to_clipboard(text: str) -> bool:
 
 
 def load_tests(path: Path) -> list[dict]:
-    """Загружает тесты из .jsonl. Пропускает пустые строки, комментарии #.
-    Останавливается на первой строке, которая не начинается с { и не пустая."""
+    """Загружает тесты из .jsonl. Останавливается на строке без {."""
     tests = []
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -107,8 +107,34 @@ def diagnose(voice_input: str) -> str:
     return "\n".join(lines)
 
 
+def generate_tests_for_all_symbols():
+    """Генерирует тесты для всех символов из templates_ru.json."""
+    templates_path = PROJECT_ROOT / "i18n" / "templates_ru.json"
+    if not templates_path.exists():
+        print("⚠ templates_ru.json не найден, пропускаем генерацию")
+        return
+
+    with open(templates_path, encoding="utf-8") as f:
+        templates = json.load(f)
+
+    for tmpl in templates:
+        sym = tmpl["sym"]
+        test_file = PROJECT_ROOT / "tests" / f"{sym}.jsonl"
+        if test_file.exists():
+            print(f"   ⏩ {sym}.jsonl уже существует, пропускаем")
+            continue
+        print(f"   🔧 Генерирую {sym}.jsonl...")
+        subprocess.run(
+            [sys.executable, str(PROJECT_ROOT / "tests" / "generate.py"),
+             "--term", sym, "--simple", "--size", "5"],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True
+        )
+
+
 def main():
     use_clip = "--clip" in sys.argv
+    use_all = "--all" in sys.argv
 
     # Обработка --file
     test_file_arg = None
@@ -118,6 +144,12 @@ def main():
             break
 
     tests_dir = Path(__file__).parent
+
+    # Генерация тестов для всех символов
+    if use_all:
+        print("🔧 Генерация тестов для всех символов...")
+        generate_tests_for_all_symbols()
+        print()
 
     if test_file_arg:
         test_file = Path(test_file_arg)

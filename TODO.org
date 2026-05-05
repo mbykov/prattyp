@@ -1,0 +1,23 @@
+* TODO Prattyp — план работ
+** DONE Базовая архитектура: острова, токены, Pratt-парсер, AST, генератор Typst
+** DONE i18n через JSON (ru.json)
+** DONE PREP-токенизатор с контекстным разрешением
+** DONE ALL, скобки, функции, frac, divide, sqrt, root, степени
+** DONE func_phrases для составных функций (натуральный логарифм)
+** DONE test runner (run.py, test_tokens.py, save_tokens.py)
+** DONE Генератор тестов из шаблонов (generate.py)
+** TODO [завтра] Доделать генератор: убрать лишние скобки в expected для /
+** TODO [завтра] Исправить process(): позиционная замена, не lower() весь текст
+** TODO [завтра] Обработка ошибок: try/except вокруг островов, logging вместо print
+** TODO [этап 2] Объединить parse_expression и _parse_until
+** TODO [этап 2] Пунктуация в токенизаторе (икс, → икс)
+** TODO [этап 3] Интегралы, суммы, логические операторы
+** TODO [этап 3] Пакет pip (pyproject.toml, консольная команда prattyp)
+** TODO [этап 3] README, документация
+** TODO [этап 4] Английский язык (en.json)
+** TODO [этап 4] Инструкция по добавлению нового языка
+** TODO [этап 5] Китайский язык
+** TODO [этап 5] Плагиновая архитектура для конструкций (frac, sqrt, pow как registry rules)
+** TODO [тех.долг] Unit-тесты для tokenizer и parser изолированно
+** TODO [тех.долг] mypy / ruff для проверки типов
+** TODO [тех.долг] Тесты на edge cases: дубликаты островов, неизвестные слова

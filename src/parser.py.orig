@@ -167,9 +167,6 @@ class _Parser:
         if t.type == "ALL":
             self.advance()
             return VarNode(name="all")
-        if t.type == "OF":
-            self.advance()
-            return self.parse_expression(0)
         if t.type == "KEYWORD" and t.value == "frac":
             return self._parse_frac()
         if t.type == "KEYWORD" and t.value == "divide":
@@ -256,42 +253,42 @@ class _Parser:
         return BinOpNode(left=left, op="/", right=right)
 
     def _parse_sqrt(self) -> ASTNode:
-        self.advance()
+        self.advance()  # KEYWORD:sqrt
 
+        # "корень степени N из ..."
         if self.peek().type == "KEYWORD" and self.peek().value == "degree":
             self.advance()
-            degree = self._parse_until(lambda t: t.type in ("END", "ALL", "OF"))
-            if self.peek().type == "OF":
+            degree = self._parse_until(
+                lambda t: t.type in ("END", "ALL") or
+                         (t.value == "OF")
+            )
+            if self.peek().value == "OF":
                 self.advance()
             radicand = self.parse_expression(0)
             return RootNode(degree=degree, radicand=radicand)
 
+        # "корень N степени из ..." — число/переменная перед degree
         if self.peek().type in ("NUM", "VAR"):
             saved_pos = self.pos
             first = self.parse_expression(0)
             if self.peek().type == "KEYWORD" and self.peek().value == "degree":
                 self.advance()
-                if self.peek().type == "OF":
+                if self.peek().value == "OF":
                     self.advance()
                 radicand = self.parse_expression(0)
                 return RootNode(degree=first, radicand=radicand)
             self.pos = saved_pos
 
+        # Существующая логика
         if self.peek().type == "KEYWORD" and self.peek().value == "square":
             self.advance()
-            if self.peek().type == "OF":
-                self.advance()
             radicand = self.parse_expression(0)
             return SqrtNode(radicand=radicand)
-
         if self.peek().type == "KEYWORD" and self.peek().value == "cube":
             self.advance()
-            if self.peek().type == "OF":
-                self.advance()
             degree = NumNode(value="3")
             radicand = self.parse_expression(0)
             return RootNode(degree=degree, radicand=radicand)
-
         if self.peek().type == "KEYWORD" and self.peek().value == "pow":
             self.advance()
             if self.peek().type == "KEYWORD" and self.peek().value == "degree":
@@ -303,16 +300,17 @@ class _Parser:
                 self.advance()
                 degree = NumNode(value="3")
             else:
-                degree = self._parse_until(lambda t: t.type in ("END", "ALL", "OF"))
+                degree = self._parse_until(
+                    lambda t: t.type in ("END", "ALL") or
+                             (t.value == "OF")
+                )
                 if self.peek().type == "KEYWORD" and self.peek().value == "degree":
                     self.advance()
-            if self.peek().type == "OF":
+            if self.peek().value == "OF":
                 self.advance()
             radicand = self.parse_expression(0)
             return RootNode(degree=degree, radicand=radicand)
 
-        if self.peek().type == "OF":
-            self.advance()
         radicand = self.parse_expression(0)
         return SqrtNode(radicand=radicand)
 
@@ -380,11 +378,6 @@ class _Parser:
         if t.type == "ALL":
             self.advance()
             return VarNode(name="all")
-        if t.type == "OF":
-            self.advance()
-            return self.parse_expression(0)
-        if t.type == "KEYWORD" and t.value == "sqrt":
-            return self._parse_sqrt()
         if t.type == "KEYWORD" and t.value == "square":
             self.advance()
             if self.peek().type == "KEYWORD" and self.peek().value == "sqrt":
