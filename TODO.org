@@ -6,18 +6,28 @@
 ** DONE func_phrases для составных функций (натуральный логарифм)
 ** DONE test runner (run.py, test_tokens.py, save_tokens.py)
 ** DONE Генератор тестов из шаблонов (generate.py)
+** DONE Исправить process(): позиционная замена, без lower()
+** DONE Обработка ошибок: try/except вокруг островов, logging вместо print
+** DONE Объединить parse_expression и _parse_until
+** DONE Интегралы (integral, def_integral, double, triple, contour) — базовая поддержка
+** DONE Пределы (lim) с STOP-механикой
+** DONE Система STOP для функций с разделителями (при, на, к, в)
+** DONE Кавычки (quote) для строковых переменных
 ** TODO [завтра] Доделать генератор: убрать лишние скобки в expected для /
-** TODO [завтра] Исправить process(): позиционная замена, не lower() весь текст
-** TODO [завтра] Обработка ошибок: try/except вокруг островов, logging вместо print
-** TODO [этап 2] Объединить parse_expression и _parse_until
-** TODO [этап 2] Пунктуация в токенизаторе (икс, → икс)
-** TODO [этап 3] Интегралы, суммы, логические операторы
+** TODO [завтра] Починить expected в генераторе для lim и def_integral
+** TODO [этап 3] Суммы (sum), произведения (prod)
+** TODO [этап 3] Производные (derivative, partial)
+** TODO [этап 3] Определённый интеграл: парсить пределы от ... до ...
+** TODO [этап 3] Кратные интегралы: несколько дэ
 ** TODO [этап 3] Пакет pip (pyproject.toml, консольная команда prattyp)
 ** TODO [этап 3] README, документация
 ** TODO [этап 4] Английский язык (en.json)
 ** TODO [этап 4] Инструкция по добавлению нового языка
 ** TODO [этап 5] Китайский язык
-** TODO [этап 5] Плагиновая архитектура для конструкций (frac, sqrt, pow как registry rules)
+** TODO [этап 5] Плагиновая архитектура для конструкций
 ** TODO [тех.долг] Unit-тесты для tokenizer и parser изолированно
 ** TODO [тех.долг] mypy / ruff для проверки типов
 ** TODO [тех.долг] Тесты на edge cases: дубликаты островов, неизвестные слова
+** TODO [баг] "умножить" в connector_words — дубликат с op_map
+** TODO [баг] "степени" в connectors дублируется с keywords.degree
+** TODO [баг] _parse_number: "четырнадцать" даёт 3.1 вместо 3.14

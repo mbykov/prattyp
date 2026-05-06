@@ -22,7 +22,7 @@ class Token:
         return self.type == other.type and self.value == other.value
 
 
-PREPOSITIONS = {"в", "во", "на", "из", "от", "под", "к", "по", "над", "до"}
+PREPOSITIONS = {"в", "во", "на", "из", "от", "под", "к", "по", "над", "до", "при"}
 
 def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
     words_lower = text.lower().split()
@@ -127,7 +127,6 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
                 else:
                     tokens.append(Token("PAREN_CLOSE", ")"))
             elif kw_type == "quote":
-                # Открывающая quote — собираем до закрывающей
                 quote_parts = []
                 i += 1
                 while i < n:
@@ -139,6 +138,8 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
                 var_name = " ".join(quote_parts)
                 tokens.append(Token("VAR", var_name))
                 continue
+            elif kw_type == "diff":
+                tokens.append(Token("SEP", "дэ"))
             else:
                 tokens.append(Token("KEYWORD", kw_type))
 
@@ -158,10 +159,10 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             continue
 
         # ── оператор ──
-        print(f"DEBUG tokenize: word='{word}' at {i}, calling _try_match_op")
+        # print(f"DEBUG tokenize: word='{word}' at {i}, calling _try_match_op")
         op_token, advance = _try_match_op(words, i, reg)
         if op_token is not None:
-            print(f"DEBUG tokenize: GOT {op_token}")
+            # print(f"DEBUG tokenize: GOT {op_token}")
             tokens.append(op_token)
             i += advance
             continue
@@ -244,7 +245,7 @@ def _try_match_op(words, i, reg):
         phrase_words = phrase.split()
         if words[i : i + len(phrase_words)] == phrase_words:
             return Token("OP", reg.op_map[phrase]), len(phrase_words)
-    print(f"DEBUG _try_match_op: no match for '{words[i]}' at {i}, candidates: {list(candidates)[:5]}")
+    # print(f"DEBUG _try_match_op: no match for '{words[i]}' at {i}, candidates: {list(candidates)[:5]}")
     return None, 0
 
 

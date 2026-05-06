@@ -22,6 +22,8 @@ def resolve_prepositions(tokens: list, prep_rules: dict) -> list:
                 tokens[i] = type(t)("KEYWORD", "pow")
             elif action == "ignore":
                 tokens[i] = type(t)("IGNORE", t.value)
+            elif action == "stop":
+                tokens[i] = type(t)("STOP", t.value)
         else:
             # Общие правила
             if t.value == "на" and _has_operand_before(tokens, i):
@@ -42,13 +44,13 @@ def _find_context(tokens, pos):
         if t.type == "KEYWORD":
             return t.value
         elif t.type == "FUNC":
-            return "func"
+            return t.value  # "lim", "sin", "cos"...
         elif t.type == "OP" and t.value == "/":
             return "divide"
-        elif t.type in ("PAREN_CLOSE", "ALL"):
-            return "expr"
         # NUM, VAR, OF, PREP — пропускаем, ищем дальше
-    return "expr"
+        elif t.type in ("PAREN_CLOSE", "ALL"):
+          continue  # пропускаем, ищем дальше
+    # return "expr"
 
 
 def _has_operand_before(tokens, pos):

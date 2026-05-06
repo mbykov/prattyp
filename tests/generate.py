@@ -120,6 +120,10 @@ class TestGenerator:
             if label in res_input:
                 const_val = random.choice(["2", "3", "n", "k", "5"])
                 res_input = res_input.replace(label, const_val)
+        for label in ["LOWER", "UPPER"]:
+            if label in res_input:
+                val = self.generate_verbal_number()
+                res_input = res_input.replace(label, val["input"], 1)
 
         # Вычисление expected
         if sym == "sqrt" and any(word in pattern for word in ["степен", "одна вторая", "ноль"]):
@@ -195,7 +199,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--term', default='sin')
     parser.add_argument('--lang', default='ru')
-    parser.add_argument('--size', type=int, default=5)
+    parser.add_argument('--size', type=int, default=10)
     parser.add_argument('--simple', action='store_true')
     args = parser.parse_args()
 

@@ -107,5 +107,178 @@
       "косинус аргумента VAR",
       "функция косинуса VAR"
     ]
+  },
+  {
+    "sym": "integral",
+    "description": "Неопределенный интеграл",
+    "patterns": [
+      "интеграл VAR по дэ VAR",
+      "интеграл VAR дэ VAR",
+      "интеграл от VAR по дэ VAR",
+      "неопределенный интеграл VAR по дэ VAR",
+      "неопределенный интеграл VAR дэ VAR",
+      "неопределенный интеграл от VAR по дэ VAR",
+      "_интеграл VAR VAR",
+      "_неопределенный интеграл VAR"
+    ]
+  },
+  {
+    "sym": "def_integral",
+    "description": "Определенный интеграл",
+    "patterns": [
+      "определенный интеграл от LOWER до UPPER VAR по дэ VAR",
+      "определенный интеграл в пределах от LOWER до UPPER от VAR дэ VAR",
+      "определенный интеграл от LOWER до UPPER VAR дэ VAR",
+      "определенный интеграл по VAR дэ VAR от LOWER до UPPER дэ VAR"
+    ]
+  },
+  {
+    "sym": "double_integral",
+    "description": "Двойной интеграл",
+    "patterns": [
+      "двойной интеграл по области VAR от VAR дэ VAR",
+      "двойной интеграл VAR по дэ VAR дэ VAR",
+      "интеграл по области VAR от функции VAR по дэ VAR"
+    ]
+  },
+  {
+    "sym": "triple_integral",
+    "description": "Тройной интеграл",
+    "patterns": [
+      "тройной интеграл по области VAR от VAR",
+      "тройной интеграл VAR по дэ VAR дэ VAR дэ VAR",
+      "интеграл по объему VAR от VAR"
+    ]
+  },
+  {
+    "sym": "contour_integral",
+    "description": "Интеграл по контуру",
+    "patterns": [
+      "интеграл по замкнутому контуру VAR от VAR",
+      "криволинейный интеграл по контуру VAR",
+      "интеграл по линии VAR",
+      "циркуляция VAR по контуру VAR"
+    ]
+  },
+  {
+    "sum": "sum",
+    "description": "Сумма (ряд)",
+    "patterns": [
+      "сумма VAR по VAR от LOWER до UPPER",
+      "сумма по VAR от LOWER до UPPER от VAR",
+      "знак суммы VAR от LOWER до UPPER",
+      "сумма VAR при VAR равном от LOWER до UPPER"
+    ],
+    "special_cases": [
+      {
+        "upper": "inf",
+        "patterns": [
+          "сумма ряда VAR от LOWER до бесконечности",
+          "сумма по VAR от LOWER до бесконечности"
+        ]
+      }
+    ]
+  },
+  {
+    "sym": "lim",
+    "description": "Предел (limit)",
+    "patterns": [
+      "предел VAR при VAR стремящемся к VAR",
+      "предел от VAR при VAR к VAR",
+      "лим VAR при VAR к VAR",
+      "предел функции VAR в точке VAR"
+    ],
+    "special_cases": [
+      {
+        "target": "inf",
+        "patterns": [
+          "предел VAR на бесконечности",
+          "предел VAR при VAR стремящемся к бесконечности"
+        ]
+      }
+    ]
+  },
+  {
+    "sym": "derivative_prime",
+    "description": "Производная (через штрих)",
+    "patterns": [
+      "VAR штрих",
+      "производная от VAR",
+      "производная VAR",
+      "VAR штрих по VAR"
+    ],
+    "special_cases": [
+      {
+        "order": "2",
+        "patterns": [
+          "VAR два штриха",
+          "вторая производная VAR",
+          "производная второго порядка от VAR"
+        ]
+      },
+      {
+        "order": "3",
+        "patterns": [
+          "VAR три штриха",
+          "третья производная VAR"
+        ]
+      }
+    ]
+  },
+  {
+    "sym": "derivative_diff",
+    "description": "Производная (через дифференциалы)",
+    "patterns": [
+      "дэ VAR по дэ VAR",
+      "производная VAR по VAR",
+      "отношение дифференциалов дэ VAR к дэ VAR"
+    ],
+    "special_cases": [
+      {
+        "order": "2",
+        "patterns": [
+          "дэ два VAR по дэ VAR дважды",
+          "вторая производная VAR по VAR"
+        ]
+      }
+    ]
+  },
+  {
+    "sym": "partial_derivative",
+    "description": "Частная производная",
+    "patterns": [
+      "частная производная VAR по VAR",
+      "кругле дэ VAR по дэ VAR",
+      "дэ VAR по дэ VAR"
+    ]
+  },
+  {
+    "sym": "integral_partial",
+    "description": "Интеграл от частной производной",
+    "patterns": [
+      "интеграл от круглое дэ VAR по дэ VAR",
+      "интеграл от частной производной VAR по VAR",
+      "интеграл от VAR по VAR по области VAR",
+      "интеграл от производной VAR по VAR по d VAR"
+    ],
+    "context_notes": "Слово 'круглое' (или 'круглое дэ') часто используется в устной речи для отличия символа ∂ от обычного d."
+  },
+  {
+    "sym": "double_integral_partial",
+    "description": "Двойной интеграл от частных производных (напр. формула Грина)",
+    "patterns": [
+      "двойной интеграл по области VAR от разности частных производных",
+      "двойной интеграл по VAR от дэ VAR по дэ VAR минус дэ VAR по дэ VAR",
+      "двойной интеграл от VAR по VAR и VAR по VAR"
+    ]
+  },
+  {
+    "sym": "surface_integral_partial",
+    "description": "Поверхностный интеграл от частных производных",
+    "patterns": [
+      "интеграл по поверхности VAR от VAR",
+      "поверхностный интеграл от частной производной VAR по VAR по d VAR d VAR",
+      "интеграл по замкнутой поверхности от дивергенции VAR"
+    ]
   }
 ]

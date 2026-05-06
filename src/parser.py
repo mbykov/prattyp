@@ -203,12 +203,27 @@ class _Parser:
         if t.type == "OF":
             self.advance()
             return self.parse_expression(0)
+        if t.type == "STOP":
+            self.advance()
+            return self.parse_expression(0)
         if t.type == "KEYWORD" and t.value == "frac":
             return self._parse_frac()
         if t.type == "KEYWORD" and t.value == "divide":
             return self._parse_divide()
         if t.type == "KEYWORD" and t.value == "sqrt":
             return self._parse_sqrt()
+        if t.type == "KEYWORD" and t.value == "integral":
+            return self._parse_integral("integral")
+        if t.type == "KEYWORD" and t.value == "def_integral":
+            return self._parse_integral("def_integral")
+
+        if t.type == "KEYWORD" and t.value == "double_integral":
+            return self._parse_integral("double_integral")
+        if t.type == "KEYWORD" and t.value == "triple_integral":
+            return self._parse_integral("triple_integral")
+        if t.type == "KEYWORD" and t.value == "contour_integral":
+            return self._parse_integral("contour_integral")
+
         if t.type == "KEYWORD" and t.value == "square":
             self.advance()
             if self.peek().type == "KEYWORD" and self.peek().value == "sqrt":
@@ -238,6 +253,16 @@ class _Parser:
     # ─── Функция ────────────────────────────────────────
 
     def _parse_func(self, name: str) -> ASTNode:
+        if name in ("integral", "def_integral", "double_integral", "triple_integral", "contour_integral"):
+            body = self.parse_expression(0, lambda t: t.type in ("SEP", "END", "ALL"))
+            var = None
+            if self.peek().type == "SEP":
+                self.advance()
+                var = self.parse_expression(0)
+            return FuncNode(name=name, argument=body)
+        if name == "lim":
+            body = self.parse_expression(0, lambda t: t.type in ("END", "ALL", "STOP"))
+            return FuncNode(name=name, argument=body)
         if self.peek().type == "PAREN_OPEN":
             arg = self._parse_paren()
         else:
@@ -361,3 +386,12 @@ class _Parser:
             self.advance()
         radicand = self.parse_expression(0)
         return SqrtNode(radicand=radicand)
+
+    def _parse_integral(self, name: str) -> ASTNode:
+        self.advance()  # KEYWORD:integral
+        body = self.parse_expression(0, lambda t: t.type in ("SEP", "END", "ALL"))
+        var = None
+        if self.peek().type == "SEP":
+            self.advance()  # дэ
+            var = self.parse_expression(0)
+        return FuncNode(name=name, argument=body)
