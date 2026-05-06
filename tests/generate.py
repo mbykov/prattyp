@@ -138,8 +138,14 @@ class TestGenerator:
         elif sym == "/":
             a, b = (args_expected + ["a", "b"])[:2]
             a_str = f"({a})" if self._needs_parens(a) else a
-            b_str = f"({b})" if self._needs_parens(b) else b
-            exp = f"{a_str} / {b_str}"
+            if self._needs_parens(b):
+                # "все" группирует всё выражение
+                last_var = args_input[-1] if args_input else ""
+                if last_var:
+                    res_input = res_input.rstrip() + " все"
+                exp = f"({a_str} / {b})"
+            else:
+                exp = f"{a_str} / {b}"
         elif sym == "^":
             base = args_expected[0] if args_expected else "x"
             if self._needs_parens(base):

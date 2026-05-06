@@ -105,8 +105,8 @@ def load_registry(lang: str = "ru") -> LangRegistry:
             reg.math_start.add(word)
             reg.math_continue.add(word)
 
-    reg.math_start |= {"функция", "извлечь"}
-    reg.math_continue |= {"функция", "извлечь"}
+    reg.math_start |= {"функция", "извлечь", "деление", "частное", "отношение"}
+    reg.math_continue |= {"функция", "извлечь", "деление", "частное", "отношение"}
 
     math_symbols = {"+", "-", "*", "/", "=", "<", ">", "(", ")"}
     reg.math_start |= math_symbols

@@ -69,6 +69,8 @@ class _Parser:
                     break
                 self.advance()
                 right = self.parse_expression(right_bp)
+                if isinstance(left, BinOpNode):
+                    left = ParenNode(inner=left)
                 if isinstance(right, BinOpNode):
                     right = ParenNode(inner=right)
                 left = BinOpNode(left=left, op="/", right=right)
@@ -142,6 +144,8 @@ class _Parser:
                 if self.peek().type == "SEP":
                     self.advance()
                 right = self.parse_expression(right_bp)
+                if isinstance(left, BinOpNode):
+                    left = ParenNode(inner=left)
                 if isinstance(right, BinOpNode):
                     right = ParenNode(inner=right)
                 left = BinOpNode(left=left, op="/", right=right)
@@ -195,6 +199,8 @@ class _Parser:
         if t.type == "NUM":
             return NumNode(value=t.value)
         if t.type == "VAR":
+            return VarNode(name=t.value)
+        if t.type == "TEXT":
             return VarNode(name=t.value)
         if t.type == "FUNC":
             return self._parse_func(t.value)
@@ -403,9 +409,12 @@ class _Parser:
         if t.type == "OP" and t.value == "-":
             operand = self.parse_expression(UNARY_BP)
             return UnaryOpNode(op="-", operand=operand)
+
         if t.type == "NUM":
             return NumNode(value=t.value)
         if t.type == "VAR":
+            return VarNode(name=t.value)
+        if t.type == "TEXT":
             return VarNode(name=t.value)
         if t.type == "FUNC":
             return self._parse_func(t.value)

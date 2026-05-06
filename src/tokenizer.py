@@ -6,6 +6,9 @@ import re
 from typing import List, Optional, Tuple
 from .registry import LangRegistry
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class Token:
     def __init__(self, type: str, value: str):
@@ -21,34 +24,35 @@ class Token:
 
 PREPOSITIONS = {"в", "во", "на", "из", "от", "под", "к", "по", "над", "до"}
 
-
 def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
-    words = text.lower().split()
+    words_lower = text.lower().split()
+    words_original = text.split()
     islands: List[List[str]] = []
     current: Optional[List[str]] = None
 
-    for word in words:
+    for i, word_lower in enumerate(words_lower):
+        word_original = words_original[i]
         is_math = (
-            word in reg.math_start
-            or word in PREPOSITIONS
-            or word.isdigit()
-            or bool(re.match(r'^\d+\.\d+$', word))
-            or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word))
-            or (word.isascii() and word.isalpha())
+            word_lower in reg.math_start
+            or word_lower in PREPOSITIONS
+            or word_lower.isdigit()
+            or bool(re.match(r'^\d+\.\d+$', word_lower))
+            or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word_lower))
+            or (word_lower.isascii() and word_lower.isalpha())
         )
         is_cont = (
-            word in reg.math_continue
-            or word in PREPOSITIONS
-            or word.isdigit()
-            or bool(re.match(r'^\d+\.\d+$', word))
-            or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word))
-            or (word.isascii() and word.isalpha())
+            word_lower in reg.math_continue
+            or word_lower in PREPOSITIONS
+            or word_lower.isdigit()
+            or bool(re.match(r'^\d+\.\d+$', word_lower))
+            or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word_lower))
+            or (word_lower.isascii() and word_lower.isalpha())
         )
 
         if is_math and current is None:
-            current = [word]
+            current = [word_original]
         elif is_cont and current is not None:
-            current.append(word)
+            current.append(word_original)
         else:
             if current is not None:
                 islands.append(current)
@@ -182,8 +186,10 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             i += 1
             continue
 
-        print(f"⚠ Неизвестное слово в острове: {word}")
+        logger.warning("Неизвестное слово в острове: %s", word)
+        tokens.append(Token("TEXT", word))
         i += 1
+        continue
 
     tokens.append(Token("END", ""))
     tokens = resolve_prepositions(tokens, reg.prep_rules)
