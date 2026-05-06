@@ -109,8 +109,23 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
                     tokens.append(Token("PAREN_OPEN", "("))
                 else:
                     tokens.append(Token("PAREN_CLOSE", ")"))
+            elif kw_type == "quote":
+                # Собираем текст до следующей quote
+                quote_parts = []
+                i += 1
+                while i < n:
+                    if words[i] in reg.keyword_map and reg.keyword_map[words[i]] == "quote":
+                        i += 1
+                        break
+                    quote_parts.append(words[i])
+                    i += 1
+                var_name = " ".join(quote_parts)
+                tokens.append(Token("VAR", var_name))
             else:
                 tokens.append(Token("KEYWORD", kw_type))
+
+
+
             i += 1
             continue
 
