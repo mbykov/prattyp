@@ -29,9 +29,26 @@ def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
     words_original = text.split()
     islands: List[List[str]] = []
     current: Optional[List[str]] = None
+    in_quote = False
+    quote_words = {w for w in reg.keyword_map if reg.keyword_map[w] == "quote"}
 
     for i, word_lower in enumerate(words_lower):
         word_original = words_original[i]
+
+        # Quote переключатель
+        if word_lower in quote_words:
+            in_quote = not in_quote
+            if current is None:
+                current = [word_original]
+            else:
+                current.append(word_original)
+            continue
+
+        # Внутри quote — всё продолжает остров
+        if in_quote:
+            current.append(word_original)
+            continue
+
         is_math = (
             word_lower in reg.math_start
             or word_lower in PREPOSITIONS
@@ -110,7 +127,7 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
                 else:
                     tokens.append(Token("PAREN_CLOSE", ")"))
             elif kw_type == "quote":
-                # Собираем текст до следующей quote
+                # Открывающая quote — собираем до закрывающей
                 quote_parts = []
                 i += 1
                 while i < n:
@@ -121,10 +138,9 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
                     i += 1
                 var_name = " ".join(quote_parts)
                 tokens.append(Token("VAR", var_name))
+                continue
             else:
                 tokens.append(Token("KEYWORD", kw_type))
-
-
 
             i += 1
             continue
@@ -142,8 +158,10 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             continue
 
         # ── оператор ──
+        print(f"DEBUG tokenize: word='{word}' at {i}, calling _try_match_op")
         op_token, advance = _try_match_op(words, i, reg)
         if op_token is not None:
+            print(f"DEBUG tokenize: GOT {op_token}")
             tokens.append(op_token)
             i += advance
             continue
@@ -226,6 +244,7 @@ def _try_match_op(words, i, reg):
         phrase_words = phrase.split()
         if words[i : i + len(phrase_words)] == phrase_words:
             return Token("OP", reg.op_map[phrase]), len(phrase_words)
+    print(f"DEBUG _try_match_op: no match for '{words[i]}' at {i}, candidates: {list(candidates)[:5]}")
     return None, 0
 
 

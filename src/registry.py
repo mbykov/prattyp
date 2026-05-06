@@ -70,18 +70,8 @@ def load_registry(lang: str = "ru") -> LangRegistry:
     reg.all_set = set(data.get("all", []))
     reg.prep_rules = data.get("prep_resolution", {})
 
-    connector_words = set(data.get("connectors", []))
-
-    for phrase in reg.op_map.keys():
-        for word in phrase.split():
-            if word not in reg.number_map and word not in reg.var_map and word not in reg.func_map and word not in reg.keyword_map:
-                connector_words.add(word)
-
-    for phrase in reg.func_phrases:
-        for word in phrase.split():
-            connector_words.add(word)
-
-    reg.connector_words = connector_words
+    # Только явные connectors из JSON
+    reg.connector_words = set(data.get("connectors", []))
 
     reg.math_start = (
         set(reg.number_map.keys())
@@ -97,7 +87,7 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         reg.math_start
         | set(reg.op_map.keys())
         | reg.all_set
-        | connector_words
+        | reg.connector_words
     )
 
     for phrase in reg.func_phrases:

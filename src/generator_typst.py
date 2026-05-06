@@ -19,7 +19,10 @@ def _generate(node: ASTNode) -> str:
         return node.value
 
     if isinstance(node, VarNode):
-        return node.name
+        name = node.name
+        if " " in name or not name.isascii():
+            return f'"{name}"'
+        return name
 
     if isinstance(node, FuncNode):
         arg = node.argument
