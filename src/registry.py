@@ -91,6 +91,10 @@ def load_registry(lang: str = "ru") -> LangRegistry:
         | reg.connector_words
     )
 
+    for phrase in reg.op_map.keys():
+      for word in phrase.split():
+        reg.math_continue.add(word)
+
     for phrase in reg.func_phrases:
         for word in phrase.split():
             reg.math_start.add(word)

@@ -54,19 +54,15 @@ class _Parser:
         self.pos += 1
         return t
 
-    # ─── Единый метод разбора ──────────────────────────
-
     def parse_expression(self, min_bp: int = 0, stop_fn: Callable[[Token], bool] = None) -> ASTNode:
         left = self._parse_prefix()
 
         while True:
             t = self.peek()
 
-            # stop_fn — дополнительное условие выхода
             if stop_fn and stop_fn(t):
                 break
 
-            # ALL
             if t.type == "ALL":
                 if min_bp > 0:
                     break
@@ -74,7 +70,6 @@ class _Parser:
                 left = ParenNode(inner=left)
                 continue
 
-            # SEP "на", "к" как деление
             if t.type == "SEP":
                 left_bp, right_bp = BINARY_BP["/"]
                 if left_bp < min_bp:
@@ -88,7 +83,6 @@ class _Parser:
                 left = BinOpNode(left=left, op="/", right=right)
                 continue
 
-            # Возведение в степень
             if t.type == "KEYWORD" and t.value == "pow":
                 left_bp, right_bp = BINARY_BP["^"]
                 if left_bp < min_bp:
@@ -107,7 +101,6 @@ class _Parser:
                 left = PowNode(base=left, exponent=exponent)
                 continue
 
-            # Постфиксный корень
             if t.type == "KEYWORD" and t.value == "sqrt_postfix":
                 if min_bp > 0:
                     break
@@ -115,7 +108,6 @@ class _Parser:
                 left = SqrtNode(radicand=left)
                 continue
 
-            # square
             if t.type == "KEYWORD" and t.value == "square":
                 if self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1].value == "sqrt_postfix":
                     if min_bp > 0:
@@ -130,7 +122,6 @@ class _Parser:
                 left = PowNode(base=left, exponent=NumNode(value="2"))
                 continue
 
-            # cube
             if t.type == "KEYWORD" and t.value == "cube":
                 if self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1].value == "sqrt_postfix":
                     if min_bp > 0:
@@ -145,7 +136,6 @@ class _Parser:
                 left = PowNode(base=left, exponent=NumNode(value="3"))
                 continue
 
-            # Бинарный оператор
             if t.type == "OP":
                 op = t.value
                 entry = BINARY_BP.get(op)
@@ -159,7 +149,6 @@ class _Parser:
                 left = BinOpNode(left=left, op=op, right=right)
                 continue
 
-            # KEYWORD divide
             if t.type == "KEYWORD" and t.value == "divide":
                 left_bp, right_bp = BINARY_BP["/"]
                 if left_bp < min_bp:
@@ -175,7 +164,6 @@ class _Parser:
                 left = BinOpNode(left=left, op="/", right=right)
                 continue
 
-            # Неявное умножение
             if self._is_atom(t):
                 left_bp, right_bp = BINARY_BP["*"]
                 if left_bp < min_bp:
@@ -191,8 +179,6 @@ class _Parser:
     def _is_atom(self, t: Token) -> bool:
         return t.type in ("VAR", "NUM", "FUNC", "PAREN_OPEN") or \
                (t.type == "KEYWORD" and t.value in ("frac", "divide", "sqrt", "pow"))
-
-    # ─── Префиксы ───────────────────────────────────────
 
     def _parse_prefix(self) -> ASTNode:
         t = self.peek()
@@ -217,14 +203,12 @@ class _Parser:
             return self._parse_integral("integral")
         if t.type == "KEYWORD" and t.value == "def_integral":
             return self._parse_integral("def_integral")
-
         if t.type == "KEYWORD" and t.value == "double_integral":
             return self._parse_integral("double_integral")
         if t.type == "KEYWORD" and t.value == "triple_integral":
             return self._parse_integral("triple_integral")
         if t.type == "KEYWORD" and t.value == "contour_integral":
             return self._parse_integral("contour_integral")
-
         if t.type == "KEYWORD" and t.value == "square":
             self.advance()
             if self.peek().type == "KEYWORD" and self.peek().value == "sqrt":
@@ -241,6 +225,8 @@ class _Parser:
         if t.type == "OP" and t.value == "-":
             operand = self.parse_expression(UNARY_BP)
             return UnaryOpNode(op="-", operand=operand)
+        if t.type == "OP" and t.value == "+":
+            return self.parse_expression(UNARY_BP)
         if t.type == "NUM":
             return NumNode(value=t.value)
         if t.type == "VAR":
@@ -250,8 +236,6 @@ class _Parser:
         if t.type == "FUNC":
             return self._parse_func(t.value)
         raise ValueError(f"Неожиданный токен в префиксе: {t}")
-
-    # ─── Функция ────────────────────────────────────────
 
     def _parse_func(self, name: str) -> ASTNode:
         if name in ("integral", "def_integral", "double_integral", "triple_integral", "contour_integral"):
@@ -275,53 +259,6 @@ class _Parser:
             if self.peek().type == "ALL":
                 self.advance()
         return FuncNode(name=name, argument=arg)
-    def _parse_lim_func(self) -> ASTNode:
-        func = self._parse_prefix()
-
-        if self.peek().type == "PAREN_OPEN":
-            self.advance()
-            arg = self.parse_expression(0)
-            if self.peek().type == "PAREN_CLOSE":
-                self.advance()
-            if isinstance(func, VarNode):
-                func = FuncNode(name=func.name, argument=arg)
-
-        variable = None
-        target = None
-
-        while self.peek().type == "STOP":
-            role = self.peek().value
-            self.advance()
-            arg = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
-            if role == "func_arg":
-                if isinstance(func, VarNode):
-                    func = FuncNode(name=func.name, argument=arg)
-            elif role == "condition":
-                variable = arg
-            elif role == "target":
-                target = arg
-            elif role == "context":
-                if variable is None:
-                    variable = arg
-                target = arg
-
-        return LimNode(function=func, variable=variable or VarNode(name="x"), target=target or VarNode(name="a"))
-
-
-    def _parse_lim_seq(self) -> ASTNode:
-        expr = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
-        variable = None
-        target = None
-        while self.peek().type == "STOP":
-            stop_value = self.peek().value
-            self.advance()
-            if stop_value in ("при", "по"):
-                variable = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
-            elif stop_value in ("к", "на"):
-                target = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
-        return LimNode(function=expr, variable=variable or VarNode(name="n"), target=target or VarNode(name="inf"))
-
-    # ─── Скобки ─────────────────────────────────────────
 
     def _parse_paren(self) -> ASTNode:
         self.advance()
@@ -329,8 +266,6 @@ class _Parser:
         if self.peek().type == "PAREN_CLOSE":
             self.advance()
         return inner
-
-    # ─── Frac ───────────────────────────────────────────
 
     def _parse_frac(self) -> ASTNode:
         self.advance()
@@ -358,8 +293,6 @@ class _Parser:
             denominator = self.parse_expression(0, lambda t: t.type in ("END", "ALL"))
         return FracNode(numerator=numerator, denominator=denominator)
 
-    # ─── Divide ─────────────────────────────────────────
-
     def _parse_divide(self) -> ASTNode:
         self.advance()
         left = self.parse_expression(0, lambda t: t.type in ("SEP", "END", "ALL"))
@@ -373,8 +306,6 @@ class _Parser:
         if self.peek().type == "ALL":
             self.advance()
         return BinOpNode(left=left, op="/", right=right)
-
-    # ─── Корни ──────────────────────────────────────────
 
     def _parse_sqrt(self) -> ASTNode:
         self.advance()
@@ -438,10 +369,85 @@ class _Parser:
         return SqrtNode(radicand=radicand)
 
     def _parse_integral(self, name: str) -> ASTNode:
-        self.advance()  # KEYWORD:integral
+        self.advance()
         body = self.parse_expression(0, lambda t: t.type in ("SEP", "END", "ALL"))
         var = None
         if self.peek().type == "SEP":
-            self.advance()  # дэ
+            self.advance()
             var = self.parse_expression(0)
         return FuncNode(name=name, argument=body)
+
+    def _parse_lim_func(self) -> ASTNode:
+        func = None
+        variable = None
+        target = None
+
+        if self.peek().type == "VAR":
+            f_name = self.advance().value
+
+            if self.peek().type == "STOP" and self.peek().value == "func_arg":
+                self.advance()
+                arg = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL") or (t.type == "OP" and t.value == "="))
+                func = FuncNode(name=f_name, argument=arg)
+            elif self.peek().type == "PAREN_OPEN":
+                self.advance()
+                arg = self.parse_expression(0)
+                if self.peek().type == "PAREN_CLOSE":
+                    self.advance()
+                func = FuncNode(name=f_name, argument=arg)
+            elif self.peek().type == "VAR":
+                arg = VarNode(name=self.advance().value)
+                func = FuncNode(name=f_name, argument=arg)
+            else:
+                func = VarNode(name=f_name)
+
+        while self.peek().type != "END":
+            t = self.peek()
+            if t.type == "STOP":
+                role = t.value
+                self.advance()
+                arg = self.parse_expression(0, lambda tt: tt.type in ("STOP", "END", "ALL") or (tt.type == "OP" and tt.value == "="))
+                if role == "func_arg":
+                    if isinstance(func, VarNode):
+                        func = FuncNode(name=func.name, argument=arg)
+                elif role == "condition":
+                    variable = arg
+                elif role == "target":
+                    target = arg
+                elif role == "target_sign":
+                    target = arg
+                elif role == "context":
+                    if variable is None:
+                        variable = arg
+                    target = arg
+                elif role == "target_mod":
+                    pass
+            elif t.type == "OP" and t.value == "=":
+                if variable is not None and target is not None:
+                    break
+                else:
+                    self.advance()
+            else:
+                self.advance()
+
+        if variable is None:
+            variable = VarNode(name="???")
+        if target is None:
+            target = VarNode(name="???")
+        if func is None:
+            func = VarNode(name="???")
+
+        return LimNode(function=func, variable=variable, target=target)
+
+    def _parse_lim_seq(self) -> ASTNode:
+        expr = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
+        variable = None
+        target = None
+        while self.peek().type == "STOP":
+            stop_value = self.peek().value
+            self.advance()
+            if stop_value in ("при", "по"):
+                variable = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
+            elif stop_value in ("к", "на"):
+                target = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
+        return LimNode(function=expr, variable=variable or VarNode(name="n"), target=target or VarNode(name="inf"))
