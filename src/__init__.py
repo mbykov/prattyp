@@ -5,7 +5,7 @@ Prattyp — голосовой ввод математики в Typst.
 import logging
 import re
 from .registry import load_registry
-from .tokenizer import find_islands, tokenize_island, PREPOSITIONS
+from .tokenizer import find_islands, tokenize_island
 from .parser import parse
 from .generator_typst import generate
 
@@ -26,7 +26,7 @@ def process(text: str, lang: str = "ru") -> str:
         word0 = island[0].lower()
         is_math = (
             word0 in reg.math_start
-            or word0 in PREPOSITIONS
+            or word0 in reg.prepositions
             or word0.isdigit()
             or bool(re.match(r'^\d+\.\d+$', word0))
             or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word0))

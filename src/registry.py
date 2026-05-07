@@ -23,7 +23,7 @@ class LangRegistry:
     decimal_markers: Dict[str, Optional[int]] = field(default_factory=dict)
     connector_words: Set[str] = field(default_factory=set)
     prep_rules: dict = field(default_factory=dict)
-
+    prepositions: Set[str] = field(default_factory=set)
 
 def load_registry(lang: str = "ru") -> LangRegistry:
     i18n_dir = Path(__file__).parent.parent / "i18n"
@@ -70,6 +70,7 @@ def load_registry(lang: str = "ru") -> LangRegistry:
     reg.all_set = set(data.get("all", []))
     reg.prep_rules = data.get("prep_resolution", {})
 
+    reg.prepositions = set(data.get("prepositions", []))
     # Только явные connectors из JSON
     reg.connector_words = set(data.get("connectors", []))
 

@@ -14,16 +14,20 @@ def resolve_prepositions(tokens: list, prep_rules: dict) -> list:
         action = rule.get("action", "ignore")
 
         if t.value in preps:
-            if action == "of":
+            if isinstance(preps, dict):
+                role = preps[t.value]
+                tokens[i] = type(t)("STOP", role)
+            elif action == "of":
                 tokens[i] = type(t)("OF", t.value)
             elif action == "sep":
                 tokens[i] = type(t)("SEP", t.value)
             elif action == "power":
                 tokens[i] = type(t)("KEYWORD", "pow")
-            elif action == "ignore":
-                tokens[i] = type(t)("IGNORE", t.value)
             elif action == "stop":
                 tokens[i] = type(t)("STOP", t.value)
+            elif action == "ignore":
+                tokens[i] = type(t)("IGNORE", t.value)
+
         else:
             # Общие правила
             if t.value == "на" and _has_operand_before(tokens, i):

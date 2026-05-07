@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Prattyp Test Runner
-Загружает все .jsonl файлы из tests/, прогоняет pipeline, выводит результат.
+Загружает все .jsonl файлы из tests/data, прогоняет pipeline, выводит результат.
 
 Использование:
-  uv run tests/run.py                  # все .jsonl в tests/
+  uv run tests/run.py                  # все .jsonl в tests/data
   uv run tests/run.py --clip           # копировать упавшие + диагностику в буфер
   uv run tests/run.py --file frac.jsonl  # только указанный файл
   uv run tests/run.py --all            # сгенерировать и запустить тесты для всех символов
@@ -143,7 +143,7 @@ def main():
             test_file_arg = sys.argv[i + 1]
             break
 
-    tests_dir = Path(__file__).parent
+    tests_dir = Path(__file__).parent / 'data'
 
     # Генерация тестов для всех символов
     if use_all:

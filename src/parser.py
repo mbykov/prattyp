@@ -10,6 +10,7 @@ from .ast_nodes import (
     BinOpNode, UnaryOpNode, AllNode,
     FracNode, ParenNode,
     PowNode, SqrtNode, RootNode,
+    LimNode,
 )
 
 
@@ -263,6 +264,10 @@ class _Parser:
         if name == "lim":
             body = self.parse_expression(0, lambda t: t.type in ("END", "ALL", "STOP"))
             return FuncNode(name=name, argument=body)
+        if name == "lim_func":
+            return self._parse_lim_func()
+        if name == "lim_seq":
+            return self._parse_lim_seq()
         if self.peek().type == "PAREN_OPEN":
             arg = self._parse_paren()
         else:
@@ -270,6 +275,51 @@ class _Parser:
             if self.peek().type == "ALL":
                 self.advance()
         return FuncNode(name=name, argument=arg)
+    def _parse_lim_func(self) -> ASTNode:
+        func = self._parse_prefix()
+
+        if self.peek().type == "PAREN_OPEN":
+            self.advance()
+            arg = self.parse_expression(0)
+            if self.peek().type == "PAREN_CLOSE":
+                self.advance()
+            if isinstance(func, VarNode):
+                func = FuncNode(name=func.name, argument=arg)
+
+        variable = None
+        target = None
+
+        while self.peek().type == "STOP":
+            role = self.peek().value
+            self.advance()
+            arg = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
+            if role == "func_arg":
+                if isinstance(func, VarNode):
+                    func = FuncNode(name=func.name, argument=arg)
+            elif role == "condition":
+                variable = arg
+            elif role == "target":
+                target = arg
+            elif role == "context":
+                if variable is None:
+                    variable = arg
+                target = arg
+
+        return LimNode(function=func, variable=variable or VarNode(name="x"), target=target or VarNode(name="a"))
+
+
+    def _parse_lim_seq(self) -> ASTNode:
+        expr = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
+        variable = None
+        target = None
+        while self.peek().type == "STOP":
+            stop_value = self.peek().value
+            self.advance()
+            if stop_value in ("при", "по"):
+                variable = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
+            elif stop_value in ("к", "на"):
+                target = self.parse_expression(0, lambda t: t.type in ("STOP", "END", "ALL"))
+        return LimNode(function=expr, variable=variable or VarNode(name="n"), target=target or VarNode(name="inf"))
 
     # ─── Скобки ─────────────────────────────────────────
 

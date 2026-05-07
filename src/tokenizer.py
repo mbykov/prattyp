@@ -22,8 +22,6 @@ class Token:
         return self.type == other.type and self.value == other.value
 
 
-PREPOSITIONS = {"в", "во", "на", "из", "от", "под", "к", "по", "над", "до", "при"}
-
 def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
     words_lower = text.lower().split()
     words_original = text.split()
@@ -51,7 +49,7 @@ def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
 
         is_math = (
             word_lower in reg.math_start
-            or word_lower in PREPOSITIONS
+            or word_lower in reg.prepositions
             or word_lower.isdigit()
             or bool(re.match(r'^\d+\.\d+$', word_lower))
             or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word_lower))
@@ -59,7 +57,7 @@ def find_islands(text: str, reg: LangRegistry) -> List[List[str]]:
         )
         is_cont = (
             word_lower in reg.math_continue
-            or word_lower in PREPOSITIONS
+            or word_lower in reg.prepositions
             or word_lower.isdigit()
             or bool(re.match(r'^\d+\.\d+$', word_lower))
             or bool(re.match(r'^\d+\.\d+[a-zA-Z]+$', word_lower))
@@ -168,7 +166,7 @@ def tokenize_island(words: List[str], reg: LangRegistry) -> List[Token]:
             continue
 
         # ── PREP (до connectors!) ──
-        if word in PREPOSITIONS:
+        if word in reg.prepositions:
             tokens.append(Token("PREP", word))
             i += 1
             continue

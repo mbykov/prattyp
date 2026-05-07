@@ -7,6 +7,7 @@ from .ast_nodes import (
     BinOpNode, UnaryOpNode, AllNode,
     FracNode, ParenNode,
     PowNode, SqrtNode, RootNode,
+    LimNode,
 )
 
 
@@ -25,11 +26,23 @@ def _generate(node: ASTNode) -> str:
         return name
 
     if isinstance(node, FuncNode):
+        name = node.name
+        if name == "lim_func":
+            arg = node.argument
+            while isinstance(arg, ParenNode):
+                arg = arg.inner
+            return f"lim({_generate(arg)})"
+        if name == "lim_seq":
+            arg = node.argument
+            while isinstance(arg, ParenNode):
+                arg = arg.inner
+            return f"lim({_generate(arg)})"
+        # остальные функции как обычно
         arg = node.argument
         while isinstance(arg, ParenNode):
             arg = arg.inner
-        arg_str = _generate(arg)
-        return f"{node.name}({arg_str})"
+        return f"{name}({_generate(arg)})"
+
 
     if isinstance(node, BinOpNode):
         left = _generate(node.left)
@@ -80,5 +93,10 @@ def _generate(node: ASTNode) -> str:
         rad_str = _generate(rad)
         return f"root({deg_str}, {rad_str})"
 
+    if isinstance(node, LimNode):
+        func = _generate(node.function)
+        var = _generate(node.variable)
+        target = _generate(node.target)
+        return f"lim_({var} -> {target}) {func}"
 
     raise ValueError(f"Неизвестный узел AST: {type(node)}")

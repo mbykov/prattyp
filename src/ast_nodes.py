@@ -60,9 +60,16 @@ class RootNode:
     degree: 'ASTNode'
     radicand: 'ASTNode'
 
+@dataclass
+class LimNode:
+    function: 'ASTNode'
+    variable: 'ASTNode'
+    target: 'ASTNode'
+
 ASTNode = Union[
     NumNode, VarNode, FuncNode,
     BinOpNode, UnaryOpNode, AllNode,
     FracNode, ParenNode,
     PowNode, SqrtNode, RootNode,
+    LimNode,
 ]
